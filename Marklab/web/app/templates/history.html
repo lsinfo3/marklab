@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% include 'head_static/bootstrap.html' %}
+    {% include 'head_static/jquery.html' %}
+    {% include 'head_static/datatables.html' %}
+
+    {% load static %}
+
+    <script src="{% static 'helper.js' %}"></script>
+    <script src="{% static 'device.js' %}"></script>
+
+    <style>
+        .pagination > li.active > a, .pagination > li.active > span{background-color:green; color: white; border-color: darkgrey;}
+        .pagination > li > a, .pagination > li > span{background-color:white; color: darkgrey; border-color: darkgrey;}
+    </style>
+
+    <title>History</title>
+</head>
+
+<body class="p-3 m-0 border-0 bd-example m-0 border-0">
+
+<script>
+    showDataTable('#taskTable', 25);
+</script>
+
+{% include 'navbar.html' %}
+
+<div class="container mt-5">
+    <!-- Table -->
+    {% include 'task_table.html' %}
+</div>
+
+
+</body>
+</html>

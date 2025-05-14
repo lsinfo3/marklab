@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% include 'head_static/bootstrap.html' %}
+
+    {% load static %}
+
+    <style>
+        .pagination > li.active > a, .pagination > li.active > span{background-color:green; color: white; border-color: darkgrey;}
+        .pagination > li > a, .pagination > li > span{background-color:white; color: darkgrey; border-color: darkgrey;}
+    </style>
+
+    <title>Settings</title>
+</head>
+
+<body class="p-3 m-0 border-0 bd-example m-0 border-0">
+
+{% include 'navbar.html' %}
+
+<div class="container mt-5">
+    <h3 class="ps-3">Settings</h3>
+    <hr>
+
+    <h4>Change password</h4>
+    <form method="post" action="{% url 'change_password' %}" class="w-25">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="new_password">New password</label>
+            <input type="password" id="new_password" name="new_password" autocomplete="new-password" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label for="confirm_new_password">Confirm new password</label>
+            <input type="password" id="confirm_new_password" name="confirm_new_password" autocomplete="new-password" class="form-control" required>
+        </div>
+
+        <button class="btn btn-success" type="submit">Change password</button>
+    </form>
+
+    <h4 class="mt-4">API</h4>
+    Your API keys:
+    <ul>
+        {% for api_key in api_keys %}
+            <li class="font-monospace">
+                {{ api_key.api_key }}
+                <form method="post" action="{% url 'delete_api_key' %}" class="d-inline form-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="api_key" value="{{ api_key.api_key }}">
+                    <button class="btn btn-danger" type="submit" title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </li>
+        {% empty %}
+            <li>No API keys setup yet. Click the button below to generate one.</li>
+        {% endfor %}
+    </ul>
+    <form method="post" action="{% url 'create_api_key' %}" class="w-25">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="api_key">API key (leave blank to use random key)</label>
+            <input type="text" id="api_key" name="api_key" class="form-control">
+        </div>
+        <button class="btn btn-success" type="submit">Create API key</button>
+    </form>
+</div>
+
+
+</body>
+</html>

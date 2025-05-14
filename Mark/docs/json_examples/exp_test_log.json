@@ -1,0 +1,57 @@
+{
+  "client": "ssh://ubuntu@172.16.32.30",
+  "experiment_name": "exp-test-log",
+  "device_name": "Mark1",
+  "modem": "Quectel_BG96",
+  "modem_iot": true,
+  "modem_port": "/dev/ttyUSB8",
+  "repeat": 2,
+  "experiment_pause": 120,
+  "always_save_logs": true,
+  "modem_configuration":{
+    "apn": "em",
+    "ip-type": "ipv4",
+    "operator_mode": "random",
+    "operators": [
+      "4,2,\"26202\",9",
+      "4,2,\"26202\",0"
+    ]
+  },
+  "background_tasks": {
+    "pause": 120,
+    "tasks": [
+      {
+        "name": "voltage-current",
+        "image_name": "exp-bricklet-voltage-current",
+        "environment": [
+        ],
+        "network": "host",
+        "privileged": true,
+        "docker_logger": true,
+        "docker_log_path": "/app/exp-bricklet-voltage-current/logs"
+      }
+    ]
+  },
+  "measurement_tasks": {
+    "pause": 60,
+    "tasks": [
+      {
+        "image_name": "exp-delay-ping",
+        "name": "delay",
+        "network": "host",
+        "environment": [
+
+        ]
+      },
+      {
+        "image_name": "exp-download-curl",
+        "name": "download_10KB",
+        "network": "host",
+        "privileged": true,
+        "environment": [
+        ],
+        "docker_logger": false
+      }
+    ]
+  }
+}

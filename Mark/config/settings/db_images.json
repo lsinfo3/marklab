@@ -1,0 +1,600 @@
+[
+  {
+    "name": "exp-bricklet-voltage-current",
+    "label": "Energy Current Voltage",
+    "output_type": "file",
+    "output_file": "/app/exp-bricklet-voltage-current/logs",
+    "measurement_type": "background",
+    "active": true,
+    "is_public": true
+  },
+  {
+    "name": "exp-temperature",
+    "label": "Temperature CPU",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "background",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "DURATION",
+        "name": "Duration",
+        "description": "Temperature measurement duration in seconds. Accepts decimal numbers. Leave empty for measuring until the end of the entire measurement.",
+        "type": "number",
+        "number": {
+          "step": "any",
+          "min": 0
+        }
+      },
+      {
+        "id": "SLEEP",
+        "name": "Sleep",
+        "description": "Delay between individual temperature lookups in seconds. Accepts decimal numbers.",
+        "type": "number",
+        "number": {
+          "step": "any",
+          "min": 0
+        },
+        "default": 1,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "exp-position-gps",
+    "label": "GPS Tracker",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "background",
+    "active": false,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "UID",
+        "name": "UID",
+        "description": "Tinkerforge UID of the GPS device",
+        "type": "text"
+      },
+      {
+        "id": "DURATION",
+        "name": "Duration",
+        "description": "GPS measurement duration in seconds. Accepts decimal numbers. Leave empty for measuring until the end of the experiment.",
+        "type": "number",
+        "number": {
+          "step": "any",
+          "min": 0
+        }
+      },
+      {
+        "id": "SLEEP",
+        "name": "Sleep",
+        "description": "Delay between individual GPS lookups in seconds. Accepts decimal numbers.",
+        "type": "number",
+        "number": {
+          "step": "any",
+          "min": 0
+        },
+        "default": 10,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "exp-system-information",
+    "label": "System Information",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "background",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "DURATION",
+        "name": "Duration",
+        "description": "System information measurement duration in seconds. Accepts decimal numbers. Leave empty for measuring until the end of the experiment.",
+        "type": "number",
+        "number": {
+          "step": "any",
+          "min": 0
+        }
+      },
+      {
+        "id": "SLEEP",
+        "name": "Sleep",
+        "description": "Delay between individual system information lookups in seconds. Accepts decimal numbers.",
+        "type": "number",
+        "number": {
+          "step": "any",
+          "min": 0
+        },
+        "default": 5,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "exp-download-curl",
+    "label": "Curl Download",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "general",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "URL",
+        "name": "URL",
+        "description": "Target URL for curl",
+        "type": "text",
+        "default": "https://132.187.12.18/downloads/1MB.txt",
+        "required": true
+      },
+      {
+        "id": "OUTPUT_FORMAT",
+        "name": "Output Format",
+        "description": "Format of the log output, variables like %{size_download}, %{speed_download}, %{time_total} etc. can be used",
+        "type": "text",
+        "default": "{\"total\": %{size_download}, \"speed_download\": %{speed_download}, \"time_total\": %{time_total}}",
+        "required": true
+      },
+      {
+        "id": "OUTPUT",
+        "name": "Output File",
+        "description": "Path where the downloaded file will be saved. As the file contents are irrelevant for most measurements, this field can be left blank or set to /dev/null",
+        "type": "text",
+        "default": "/dev/null",
+        "required": false
+      },
+      {
+        "id": "TIMEOUT",
+        "name": "Timeout",
+        "description": "Maximum time in seconds for each download",
+        "type": "number",
+        "number": {
+          "step": "any",
+          "min": 0
+        },
+        "default": 7200
+      },
+      {
+        "id": "REPETITIONS",
+        "name": "Repetitions",
+        "description": "Number of repetitions",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 1
+        },
+        "default": 1
+      },
+      {
+        "id": "SLEEP",
+        "name": "Sleep",
+        "description": "Delay between individual downloads in seconds. Accepts decimal numbers.",
+        "type": "number",
+        "number": {
+          "step": "any",
+          "min": 0
+        },
+        "default": 1,
+        "required": true
+      },
+      {
+        "id": "ARGS",
+        "name": "Arguments",
+        "description": "Specify other command line arguments for curl here",
+        "type": "text"
+      }
+    ]
+  },
+  {
+    "name": "exp-delay-ping",
+    "label": "Ping Delay",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "general",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "IP_TARGET",
+        "name": "Target Host",
+        "description": "Ping destination host",
+        "type": "text",
+        "default": "8.8.8.8",
+        "required": true
+      },
+      {
+        "id": "COUNT",
+        "name": "Count",
+        "description": "Number of pings to send",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 60,
+        "required": true
+      },
+      {
+        "id": "INTERVAL",
+        "name": "Interval",
+        "description": "How many seconds to wait before sending another ping. Accepts decimal numbers.",
+        "type": "number",
+        "number": {
+          "step": "any",
+          "min": 0
+        },
+        "default": 1
+      },
+      {
+        "id": "LOG_PATH",
+        "name": "Log Path",
+        "description": "Output CSV will be written to this path",
+        "type": "text",
+        "default": "./logs"
+      }
+    ]
+  },
+  {
+    "name": "exp-signal-strength",
+    "label": "Signal Quality",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "general",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "BAUDRATE",
+        "name": "Baud Rate",
+        "description": "Baud rate to use for executing the AT command. Usually, this does not need to be changed.",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 115200
+      },
+      {
+        "id": "TIMEOUT",
+        "name": "Timeout",
+        "description": "Timeout (seconds) for the AT command. Usually, this does not need to be changed.",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 30
+      },
+      {
+        "id": "WAIT_TIME",
+        "name": "Wait Time",
+        "description": "Wait time (seconds) for the AT command response. Usually, this does not need to be changed.",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 120
+      },
+      {
+        "id": "REPETITION",
+        "name": "Repetitions",
+        "description": "Number of signal quality measurements to execute",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 1
+      },
+      {
+        "id": "SLEEP",
+        "name": "Sleep",
+        "description":"Delay between individual signal quality lookups in seconds.",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 10,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "exp-upload-curl",
+    "label": "Curl Upload",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "general",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "IP_TARGET",
+        "name": "URL",
+        "description": "Target URL for curl",
+        "type": "text",
+        "default": "https://132.187.12.18/upload_handler",
+        "required": true
+      },
+      {
+        "id": "OUTPUT_FORMAT",
+        "name": "Output Format",
+        "description": "Format of the log output, variables like %{size_upload}, %{speed_upload}, %{time_total} etc. can be used",
+        "type": "text",
+        "default": "{\"size_upload\": %{size_upload}, \"average_speed\": %{speed_upload}, \"time_total\": %{time_total}}",
+        "required": true
+      },
+      {
+        "id": "FILEPATH",
+        "name": "File path",
+        "description": "File to be uploaded, e.g. 10KB.txt, 100KB.txt, 1MB.txt, ...",
+        "type": "text",
+        "default": "10KB.txt",
+        "required": false
+      },
+      {
+        "id": "TIMEOUT",
+        "name": "Timeout",
+        "description": "Maximum time in seconds for each upload",
+        "type": "number",
+        "number": {
+          "step": "any",
+          "min": 0
+        },
+        "default": 7200
+      },
+      {
+        "id": "REPETITIONS",
+        "name": "Repetitions",
+        "description": "Number of repetitions",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 1
+        },
+        "default": 5
+      },
+      {
+        "id": "SLEEP",
+        "name": "Sleep",
+        "description": "Delay between individual downloads in seconds. Accepts decimal numbers.",
+        "type": "number",
+        "number": {
+          "step": "any",
+          "min": 0
+        },
+        "default": 1,
+        "required": true
+      },
+      {
+        "id": "ARGS",
+        "name": "Arguments",
+        "description": "Specify other command line arguments for curl here",
+        "type": "text"
+      }
+    ]
+  },
+  {
+    "name": "exp-network-report",
+    "label": "Network Report",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "general",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "BAUDRATE",
+        "name": "Baud Rate",
+        "description": "Baud rate to use for executing the AT command. Usually, this does not need to be changed.",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 115200
+      },
+      {
+        "id": "TIMEOUT",
+        "name": "Timeout",
+        "description": "Timeout (seconds) for the AT command. Usually, this does not need to be changed.",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 30
+      },
+      {
+        "id": "WAIT_TIME",
+        "name": "Wait Time",
+        "description": "Wait time (seconds) for the AT command response. Usually, this does not need to be changed.",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 120
+      },
+      {
+        "id": "REPORT_FORMAT",
+        "name": "Report Format",
+        "description": "Report format, will be put after AT+CREG=",
+        "type": "text",
+        "default": "2",
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "get-ip-address",
+    "label": "Get IP Address",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "general",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "URL",
+        "name": "URL",
+        "description": "URL of the service that will be used to get the IP address",
+        "type": "text",
+        "default": "ifconfig.me/all.json",
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "exp-route-traceroute",
+    "label": "Traceroute Route",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "general",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "DEST",
+        "name": "Target Host",
+        "description": "Traceroute destination hosts. Delimit multiple destination hosts using semicolons",
+        "type": "text",
+        "default": "8.8.8.8",
+        "required": true
+      },
+      {
+        "id": "PARAM",
+        "name": "Parameters",
+        "description": "Specify other command line arguments for traceroute here",
+        "type": "text"
+      }
+    ]
+  },
+  {
+    "name": "exp-delay-fping",
+    "label": "fPing Delay",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "general",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "IP_TARGETS",
+        "name": "fPing destination hosts",
+        "type": "text",
+        "default": "8.8.8.8",
+        "required": true
+      },
+      {
+        "id": "PARAM",
+        "name": "Parameters",
+        "description": "Specify other command line arguments for fPing here",
+        "type": "text",
+        "default": "-c 60"
+      }
+    ]
+  },
+  {
+    "name": "exp-delay-hping",
+    "label": "hPing Delay",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "general",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "IP_TARGET",
+        "name": "hPing destination host",
+        "type": "text",
+        "default": "8.8.8.8",
+        "required": true
+      },
+      {
+        "id": "PARAM",
+        "name": "Parameters",
+        "description": "Specify other command line arguments for hPing here",
+        "type": "text",
+        "default": "-S -p 80 -c 60"
+      }
+    ]
+  },
+  {
+    "name": "at-commander",
+    "label": "AT Commander",
+    "output_type": "stdout",
+    "output_file": null,
+    "measurement_type": "general",
+    "active": true,
+    "is_public": true,
+    "env_schema": [
+      {
+        "id": "BAUDRATE",
+        "name": "Baud Rate",
+        "description": "Baud rate to use for executing the AT command. Usually, this does not need to be changed.",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 115200
+      },
+      {
+        "id": "TIMEOUT",
+        "name": "Timeout",
+        "description": "Timeout (seconds) for the AT command. Usually, this does not need to be changed.",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 600
+      },
+      {
+        "id": "WAIT_TIME",
+        "name": "Wait Time",
+        "description": "Wait time (seconds) for the AT command response. Usually, this does not need to be changed.",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 0
+        },
+        "default": 600
+      },
+      {
+        "id": "COMMAND",
+        "name": "Command",
+        "description": "AT command to execute",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "REPETITIONS",
+        "name": "Repetitions",
+        "description": "How many times the AT command should be executed",
+        "type": "number",
+        "number": {
+          "step": 1,
+          "min": 1
+        },
+        "default": 1
+      }
+    ]
+  },
+  {
+    "name": "packet-capture",
+    "label": "Packet Capture",
+    "output_type": "file",
+    "output_file": "/app/capture.pcap",
+    "measurement_type": "background_later",
+    "active": true,
+    "is_public": true,
+    "env_schema": []
+  }
+]

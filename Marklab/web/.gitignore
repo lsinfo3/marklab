@@ -1,0 +1,12 @@
+# Adapted from https://github.com/github/gitignore/blob/main/Python.gitignore
+
+# Temporary folder for Docker image uploads
+temp/
+
+# Django collected static files
+staticfiles/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class

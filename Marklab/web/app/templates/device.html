@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% include 'head_static/bootstrap.html' %}
+    {% include 'head_static/jquery.html' %}
+    {% include 'head_static/datatables.html' %}
+
+    {% load static %}
+
+    <script src="{% static 'helper.js' %}"></script>
+    <script src="{% static 'device.js' %}"></script>
+
+    <style>
+        .pagination > li.active > a, .pagination > li.active > span {
+            background-color: green;
+            color: white;
+            border-color: darkgrey;
+        }
+
+        .pagination > li > a, .pagination > li > span {
+            background-color: white;
+            color: darkgrey;
+            border-color: darkgrey;
+        }
+
+        .table > thead > tr > th {
+            text-align: center;
+        }
+
+        .not-clickable {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+
+    <title>{{ device.name }}</title>
+</head>
+
+<body class="p-3 m-0 border-0 bd-example m-0 border-0">
+
+<script>
+    showDataTable('#taskTable', 25);
+</script>
+
+{% include 'navbar.html' %}
+
+<div class="container mt-5">
+
+    <div class="row">
+        <div class="col ps-4">
+            <h3>{{ device.name }}</h3>
+        </div>
+        <div class="col text-end pe-4">
+            <a href="{% url 'docker_image' device_id=device.id %}" class="btn btn-warning" role="button">Edit Docker Images</a>
+            {% if has_perm_upload_docker_images %}
+                <a class="btn btn-primary" role="button" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    Upload Docker Image
+                </a>
+            {% endif %}
+            {% if allow_new_task %}
+                <a href="{% url 'task' device_id=device.id %}"
+                   class="btn btn-success" role="button">Create Task</a>
+            {% else %}
+                <a href="{% url 'task' device_id=device.id %}"
+                   class="btn btn-success not-clickable" role="button">Create Task</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% include 'dockerfile_upload.html' %}
+
+    <hr>
+
+    <!-- create a warning message if the device is in critical state -->
+    {% if device.status != 'online' and device.status != 'processing' %}
+        <div class="alert alert-warning text-center" role="alert">
+            Be careful while creating a task. The device is currently in <b>{{ device.status }}</b> state. Tasks may not be executed or may fail. <br>
+            {% if device.status_message %}
+                <b>System message: </b>{{ device.status_message }}
+            {% endif %}
+        </div>
+    {% endif %}
+
+
+    <!-- create a card with infomation of the device -->
+    <div class="mt-5" style="display: flex; justify-content: space-between">
+        <div class="container">
+            <div class="row align-items-start">
+                <div class="col">
+                    <p>Location:
+                        {% if device.location == '' %}
+                            <span class="badge bg-secondary">Unknown</span>
+                        {% else %}
+                            {{ device.location }}
+                        {% endif %}
+                    </p>
+                    <p>Device Status:
+                        {% if device.status == 'online' %}
+                            <span class="badge bg-success">{{ device.status }}</span>
+                        {% elif device.status == 'processing' %}
+                            <span class="badge bg-primary">{{ device.status }}</span>
+                        {% elif device.status == 'critical' or device.status == 'maintenance' %}
+                            <span class="badge bg-warning">{{ device.status }}</span>
+                        {% elif device.status == 'unknown'%}
+                            <span class="badge bg-secondary">{{ device.status }}</span>
+                        {% else %}
+                            <span class="badge bg-danger">{{ device.status }}</span>
+                        {% endif %}
+                    </p>
+                    <p>Health check: {{ device.time_since_checkin }}</p>
+                    <p>Device IP: {{ device.ip_address }}</p>
+                    <p><b>Tasks in pipeline: {{ open_tasks }}</b></p>
+                    {% if not allow_new_task %}
+                    <p><b>A user scheduled at least one task. Therefore, no new task can be created.</b></p>
+                    {% endif %}
+                </div>
+
+                {% for modem in modems|dictsort:"name" %}
+                    <div class="col-sm-3">
+                        <div class="card" style="background-color: #cccccc;">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="card-title">{{ modem.name }}</h5>
+
+                                    {% if "timestamp" in modem.operators and not "manual_scan" in modem.operators %}
+                                        <form method="post" action="{% url 'run_operator_scan' device_id=device.id %}" style="margin-top: -8px">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="modem" value="{{ modem.name }}">
+                                            <button type="submit" class="btn" aria-label="Close">
+                                                <i class="bi bi-arrow-clockwise"></i>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+
+                                <p class="card-text mb-0">
+                                    Abilities: {{ modem.ability }}<br>
+                                    {% if "timestamp" in modem.operators and not "manual_scan" in modem.operators %}
+                                        Operators ({{ modem.operators.timestamp }}):
+                                    {% else %}
+                                        Operators (scan in progress):
+                                    {% endif %}
+                                    {% if not modem.operators.available %}<br> {{ modem.operators.message }}{% endif %}
+                                </p>
+
+                                {% if modem.operators.available %}
+                                    <ul class="mb-0">
+                                        {% regroup modem.operators.operators|dictsort:"numeric_name" by numeric_name as grouped_operators %}
+                                        {% for operator in grouped_operators %}
+                                            <li title="{{ operator.grouper }}">
+                                                {{ operator.list.0.long_name }} ({% for entry in operator.list|dictsort:"act" %}{{ entry.act_as_text }}{% if not forloop.last %}, {% endif %}{% endfor %})
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- create a card with infomation of the tasks -->
+    {% include 'task_table.html' %}
+</div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+[Unit]
+Description=Marklab
+
+Wants=docker.service
+After=docker.service
+
+[Service]
+ExecStart=bash -c "cd /home/ubuntu/marklab && docker compose up"
+Restart=always
+RestartSec=10s
+TimeoutStopSec=20s
+User=ubuntu
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,39 @@
+<div class="container mt-5">
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="{% url 'home' %}">
+          <!-- Set name in black -->
+            <b>Marklab</b>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/home/' %}active{% endif %}" href="{% url 'home' %}">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/history/' %}active{% endif %}" href="{% url 'history' %}">History</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/settings/' %}active{% endif %}" href="{% url 'settings' %}">Settings</a>
+                </li>
+                {% if request.user.is_staff %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/">Admin</a>
+                    </li>
+                {% endif %}
+            </ul>
+            <div class="nav-item ms-auto">
+                <b class="me-2">{{ user.get_username }}</b>
+                <a class="btn btn-outline-secondary" href="{% url 'logout' %}">Logout</a>
+            </div>
+        </div>
+      </div>
+    </nav>
+
+   <div class="container-fluid p-0">
+        {% include 'messages.html' %}
+   </div>
+</div>

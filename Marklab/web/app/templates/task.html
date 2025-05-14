@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% include 'head_static/bootstrap.html' %}
+    {% include 'head_static/jquery.html' %}
+
+    <title>New Task</title>
+
+    <style>
+        #taskForm {
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 10px;
+        }
+
+        .invalid-input {
+            color: red;
+            display: none;
+        }
+
+        .hidden {
+            visibility: hidden
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            position: absolute;
+            max-width: 400px;
+            width: max-content;
+            z-index: 2;
+            text-align: left;
+            color: white;
+            font-size: 14px;
+            background-color: #071d77;
+            border-radius: 8px;
+            padding: 10px 14px 10px 14px;
+            top: -45px;
+        }
+
+        #right {
+            right: 0;
+        }
+
+        #middle {
+            right: -500px;
+        }
+
+        .hover-text:hover .tooltip-text {
+            visibility: visible;
+        }
+
+        .hover-text {
+            position: relative;
+            display: inline-block;
+            text-align: center;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            border-radius: 50%;
+            font-size: 16px;
+            color: white;
+            background: black;
+        }
+
+        .table {
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .table-heading {
+            padding-top: 50px;
+            white-space: nowrap;
+        }
+
+        .float-left {
+            padding-right: 15px;
+            float: left;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .schedule-container {
+            display: flex;
+            margin-top: 20px;
+        }
+
+        .schedule-label {
+            font-size: 16px;
+            display: block;
+            color: black;
+        }
+
+        .schedule-input {
+            height: 28px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid;
+        }
+
+        .schedule-button {
+            margin-top: auto;
+        }
+
+        .error-message {
+            float: left;
+            color: red;
+        }
+
+        .margin-right {
+            margin-right: 5px;
+        }
+
+        .hidden-container {
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            position: fixed;
+            z-index: 800;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hidden-inputs {
+            max-height: 90%;
+            overflow-y: auto;
+        }
+
+        .hidden-inputs::-webkit-scrollbar {
+            width: 0;
+        }
+
+        .button-float-right {
+            float: right;
+        }
+
+        body.no-scrolling {
+            overflow: hidden;
+        }
+    </style>
+
+</head>
+<body class="p-3 m-0 border-0 bd-example m-0 border-0">
+{% include 'navbar.html' %}
+{% include 'json_import.html' %}
+{% load static %}
+<script src="{% static 'helper.js' %}"></script>
+<script src="{% static 'task.js' %}"></script>
+
+<script id="images-values" type="application/json">
+    {{ images_json_dumps|safe }}
+</script>
+<script id="background-images-values" type="application/json">
+    {{ background_images_json_dumps|safe }}
+</script>
+<script id="background-later-images-values" type="application/json">
+    {{ background_later_images_json_dumps|safe }}
+</script>
+<script>
+    function importEditJSON() {
+        // Automatically import from JSON if edit was selected
+        const editJSON = sessionStorage.getItem("editJSON");
+        sessionStorage.removeItem("editJSON");
+
+        if(editJSON) {
+            const editMeasurement = JSON.parse(editJSON);
+            importFromJson(editMeasurement);
+        }
+    }
+
+    function createTask(isScheduledTask) {
+        let name = document.getElementById('name').value;
+        let modem = document.getElementById('modem').value;
+        let access_technology = document.getElementById('access_technology').value;
+        let iteration = document.getElementById('iteration').value;
+        iteration = parseInt(iteration) ?? 1;
+        let operator_mode = document.getElementById('operator_mode').value;
+        let operator = document.getElementById('operator').value;
+        let apn = document.getElementById('apn').value;
+        let iptype = document.getElementById('iptype').value;
+        let experiment_pause = document.getElementById('experiment_pause').value;
+        experiment_pause = parseInt(experiment_pause) ?? 0;
+        let background_pause = document.getElementById('background_pause').value;
+        background_pause = parseInt(background_pause) ?? 0;
+        let gsm_band = document.getElementById('gsm_band').value;
+        let catm1_band = document.getElementById('catm1_band').value;
+        let nbiot_band = document.getElementById('nbiot_band').value;
+        let device_id = '{{ device.id }}';
+        let device_name = '{{ device.name }}';
+        if (name.trim().length === 0 || modem.trim().length === 0
+            || apn.trim().length === 0 || iptype.trim().length === 0) {
+            appendAlert('Please fill out all required fields', 'danger', 'validationMessage');
+            return;
+        }
+
+        if (operator_mode === 'from_scan_results') {
+            operator_mode = 'manual';
+
+            const preset_list = document.getElementById('operator_preset_' + modem);
+
+            if(!preset_list) {
+                appendAlert('Scan results not available for that modem');
+                return;
+            }
+
+            operator = preset_list.value;
+        }
+
+        if (operator_mode === 'manual' && operator.trim().length === 0) {
+            appendAlert('Please enter an operator', 'danger', 'validationMessage');
+            return;
+        } else if (operator_mode !== 'manual') {    // if operator mode is not manual, set operator to null to avoid conflicts
+            operator = null;
+            //gsm_band = null;
+            //catm1_band = null;
+            //nbiot_band = null;
+        }
+
+        if (background_pause < 0 || experiment_pause < 0) {
+            appendAlert('Pause must be greater or equal to 0', 'danger', 'validationMessage');
+            return;
+        }
+
+        let measurement_list = getMeasurementList('measurement_tasks');
+        let background_list = getMeasurementList('background_tasks');
+        let background_later_list = getMeasurementList('background_later_tasks');
+
+        if (measurement_list.length === 0 && background_list.length === 0 && background_later_list.length === 0) {
+            appendAlert('There must be at least one measurement or background task', 'danger', 'validationMessage');
+            return;
+        }
+
+        let m_tasks = {
+            'pause': experiment_pause !== '' ? experiment_pause : 0,
+            'tasks': measurement_list
+        }
+
+        let b_tasks = {
+            'pause': background_pause !== '' ? background_pause : 0,
+            'tasks': background_list
+        }
+
+        let b_l_tasks = {
+            'tasks': background_later_list
+        }
+
+        let modem_configuration = {
+            'apn': apn,
+            'ip-type': iptype,
+            'act_mode': access_technology,
+            'operator_mode': operator_mode,
+            'operators': operator ? operator?.split(';') : null
+        }
+
+        if (gsm_band !== '' && gsm_band !== null && gsm_band !== undefined) {
+            modem_configuration['gsm_band'] = gsm_band;
+        }
+
+        if (catm1_band !== '' && catm1_band !== null && catm1_band !== undefined) {
+            modem_configuration['catm1_band'] = catm1_band;
+        }
+
+        if (nbiot_band !== '' && nbiot_band !== null && nbiot_band !== undefined) {
+            modem_configuration['nbiot_band'] = nbiot_band;
+        }
+
+        let numSamples = document.getElementById('samples').value;
+
+        let scheduledTaskDateTime = {};
+        let repeatScheduledTask = 'never';
+        let endRepetitionScheduledTask = 'never';
+        let endRepetitionScheduledTaskDateTime = {};
+        let endRepetitionCount;
+        let endNumRepetitions;
+
+        if (isScheduledTask) {
+            scheduledTaskDateTime = {
+                'date': document.getElementById("date_input").value,
+                'time': document.getElementById("time_input").value,
+            }
+
+            repeatScheduledTask = document.getElementById('repeat_select').value;
+            if (repeatScheduledTask !== 'never') {
+                const repeatSelectEnd = document.getElementById('repeat_select_end').value;
+                endRepetitionScheduledTask = repeatSelectEnd;
+                if (repeatSelectEnd === 'on_date_and_time') {
+                    endRepetitionScheduledTaskDateTime = {
+                        'date': document.getElementById("date_input_repeat").value,
+                        'time': document.getElementById("time_input_repeat").value,
+                    }
+                } else if (repeatSelectEnd === 'num_repetitions') {
+                    endRepetitionCount = 1;
+                    endNumRepetitions = parseInt(document.getElementById('num_repetitions_input').value);
+                }
+            }
+        }
+
+        let measurement = {
+            'experiment_name': name,
+            'device_name': device_name,
+            'modem': modem,
+            'modem_port': null,
+            'modem_iot': false,      //should be set in the backend (django - default: false)
+            'repeat': iteration,
+            'experiment_pause': experiment_pause,
+            'modem_configuration': modem_configuration,
+            'measurement_tasks': m_tasks,
+            'background_tasks': b_tasks,
+            'background_later_tasks': b_l_tasks,
+            'num_samples': numSamples,
+            'is_scheduled_task': isScheduledTask,
+            'scheduled_task_date_time': scheduledTaskDateTime,
+            'repeat_scheduled_task': repeatScheduledTask,
+            'end_repetition_scheduled_task' : endRepetitionScheduledTask,
+            'end_repetition_scheduled_task_date_time': endRepetitionScheduledTaskDateTime,
+            'end_repetition_scheduled_task_repetition_count': endRepetitionCount,
+            'end_repetition_scheduled_task_num_repetitions': endNumRepetitions
+        };
+
+        let csrftoken = '{{ csrf_token }}';
+        fetch('/device/' + device_id + '/task/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify(measurement)
+        }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    appendAlert(data.message, 'danger', 'validationMessage');
+                }
+            }).catch(
+            error => alert(error)
+        );
+
+    }
+
+    function imageNameChange(edit) {
+        let e1 = "";
+        let e2 = "";
+        if (edit === "Edit") {
+            e1 = "_edit";
+            e2 = "-edit";
+        } else {
+            edit = ""
+        }
+        let imageTag = document.getElementById('imageName' + edit);
+        let index = imageTag.selectedIndex;
+        let imageName = imageTag.value;
+        document.getElementById('tf_device_dropdown' + e1).hidden = imageName !== 'exp-bricklet-voltage-current';
+
+        if (imageName === 'exp-bricklet-voltage-current') {
+            document.getElementById('tf_device' + e1).value = document.getElementById('modem').value;
+        }
+
+        let docker_logger = imageTag.options[index].getAttribute("data-value1");
+        let output_file = imageTag.options[index].getAttribute("data-value2");
+
+        if (docker_logger === 'file') {
+            document.getElementById('docker_logger' + e1).checked = true;
+            document.getElementById('docker_log_path' + e1).value = output_file;
+        } else {
+            document.getElementById('docker_logger' + e1).checked = false;
+            document.getElementById('docker_log_path' + e1).value = '';
+        }
+
+        const taskType = document.getElementById('taskType' + edit).value;
+        let images_name;
+        if (taskType === 'measurement_tasks') {
+            images_name = 'images-values';
+        } else if (taskType === 'background_tasks') {
+            images_name = 'background-images-values';
+        } else {
+            images_name = 'background-later-images-values';
+        }
+        let images = JSON.parse(document.getElementById(images_name).textContent);
+
+        removeEnvironmentVariables();
+
+        const envFieldsContainer = document.getElementById('env-fields' + e2);
+        envFieldsContainer.innerHTML = "";
+
+        const div = document.createElement('div');
+        if (images[index - 1]["env_schema"] !== null) {
+            images[index - 1]["env_schema"].forEach((envVariable) => {
+                const envLabel = document.createElement('label');
+                envLabel.id = envVariable["id"];
+                let name = envVariable["name"];
+                if (envVariable["required"]) {
+                    name = name.concat("*");
+                }
+                envLabel.textContent = name;
+                envLabel.className = 'form-label ps-2 margin-right';
+
+                const envTooltipContainer = document.createElement('div');
+                envTooltipContainer.textContent = "?";
+                envTooltipContainer.className = "hover-text";
+                const envTooltip = document.createElement('span');
+                envTooltip.className = "tooltip-text";
+                if (edit === "Edit") {
+                    const hiddenTaskFormContainerWidth = document.getElementById("hiddenTaskFormContainer").offsetWidth;
+                    const envTooltipMaxWidth = Math.round(hiddenTaskFormContainerWidth / 2).toString();
+                    envTooltip.style.maxWidth = envTooltipMaxWidth + "px";
+                } else {
+                    envTooltip.id = "right";
+                }
+                envTooltip.textContent = envVariable["description"];
+                envTooltipContainer.appendChild(envTooltip);
+
+                let envInput;
+                if (envVariable["type"] === "number") {
+                    envInput = document.createElement('input');
+                    envInput.type = 'number';
+                    envInput.min = envVariable["number"]["min"];
+                    if (envVariable["number"]["step"] === "any") {
+                        envInput.step = "0.1";
+                    } else {
+                        envInput.step = envVariable["number"]["step"];
+                    }
+                } else {
+                    envInput = document.createElement('textarea');
+                }
+                envInput.id = envVariable["id"];
+                envInput.name = "environment_variables";
+                envInput.className = 'form-control';
+                if (typeof envVariable["default"] !== 'undefined') {
+                    envInput.value = envVariable["default"];
+                } else {
+                    envInput.value = "";
+                }
+                if (envVariable["required"]) {
+                    envInput.required = true;
+                }
+
+                const br = document.createElement('br');
+
+                div.appendChild(envLabel);
+                if (typeof envVariable["description"] !== "undefined") {
+                    div.appendChild(envTooltipContainer);
+                }
+                div.appendChild(br);
+                div.appendChild(envInput);
+                div.appendChild(br);
+            });
+        } else {
+            const envVariablesHelp = document.createElement('div');
+
+            const envSmall = document.createElement('small');
+            envSmall.id = "environment_variables_help";
+            envSmall.className = "form-text text-muted ps-2";
+            envSmall.textContent = "Please enter the environment variables in the following format: ";
+
+            const br = document.createElement('br');
+
+            const envCode = document.createElement('code');
+            envCode.textContent = 'ENV_VAR1=value1;ENV_VAR2=value2';
+
+            envSmall.appendChild(br);
+            envSmall.appendChild(envCode);
+
+            envVariablesHelp.appendChild(envSmall);
+
+            const envTextArea = document.createElement('textarea');
+            envTextArea.className = "form-control";
+            envTextArea.id = "environment_variables";
+            envTextArea.name = "environment_variables";
+            envTextArea.rows = 4;
+
+            div.appendChild(envVariablesHelp);
+            div.appendChild(envTextArea);
+        }
+    envFieldsContainer.append(div);
+    }
+
+    function taskTypeChange(edit) {
+        let e = "";
+        if (edit === "Edit") {
+            e = "_edit";
+        } else {
+            edit = ""
+        }
+        let taskType = document.getElementById('taskType' + edit).value;
+        let imageName = document.getElementById('imageName' + edit);
+        let tf_device_dropdown = document.getElementById('tf_device_dropdown' + e);
+        tf_device_dropdown.hidden = true;
+        let options = '<option value="" selected disabled hidden>Choose Image</option>';
+        if (taskType === 'background_tasks') {
+            {% for image in background_images %}
+                options += '<option value="{{ image.name }}" data-value1="{{ image.output_type }}" data-value2="{{ image.output_file }}">{{ image.label }}</option>';
+            {% endfor %}
+        } else if (taskType === 'measurement_tasks') {
+            {% for image in images %}
+                options += '<option value="{{ image.name }}" data-value1="{{ image.output_type }}" data-value2="{{ image.output_file }}">{{ image.label }}</option>';
+            {% endfor %}
+        } else {
+            {% for image in background_later_images %}
+                options += '<option value="{{ image.name }}" data-value1="{{ image.output_type }}" data-value2="{{ image.output_file }}">{{ image.label }}</option>';
+            {% endfor %}
+        }
+        imageName.innerHTML = options;
+    }
+
+    function getInvalidCharacterMessageElements() {
+        let elementInvalidCharacter1 = document.getElementById("invalid-character-name-input-1");
+        let elementInvalidCharacter2 = document.getElementById("invalid-character-name-input-2");
+        let elementInvalidCharacter3 = document.getElementById("invalid-character-name-input-3");
+
+        return [elementInvalidCharacter1, elementInvalidCharacter2, elementInvalidCharacter3];
+    }
+
+    function showInvalidCharacterMessage() {
+        getInvalidCharacterMessageElements().forEach((element) => {
+            element.style.display = "inline-block";
+        });
+    }
+
+    function hideInvalidCharacterMessage() {
+        getInvalidCharacterMessageElements().forEach((element) => {
+            element.style.display = "none";
+        });
+    }
+
+    let oldValue = ""
+    function isCharacterValid(value, selectionStart) {
+        let pattern = /^[a-zA-Z0-9-+_]+$/;
+        let element = document.getElementById("name");
+
+        if (!pattern.test(value) && value !== "") {
+            element.value = oldValue;
+            element.setSelectionRange(selectionStart - 1, selectionStart - 1);
+
+            showInvalidCharacterMessage();
+        } else {
+            oldValue = value;
+
+            hideInvalidCharacterMessage();
+        }
+    }
+
+    function setSchedulingDefaultDateAndTime() {
+        if(!document.getElementById('date_input')) {
+            return;
+        }
+
+        const currentDate = new Date();
+        const formattedDateToday = currentDate.toISOString().split('T')[0];
+
+        document.getElementById('date_input').min = formattedDateToday;
+        document.getElementById('date_input').value = formattedDateToday;
+        document.getElementById('date_input_repeat').min = formattedDateToday;
+        document.getElementById('date_input_repeat').value = formattedDateToday;
+
+        const hoursNow = String(currentDate.getHours()).padStart(2, '0');
+        const minutesNow = String(currentDate.getMinutes()).padStart(2, '0');
+
+        document.getElementById('time_input').value = `${hoursNow}:${minutesNow}`;
+        document.getElementById('time_input_repeat').value = `${hoursNow}:${minutesNow}`;
+    }
+
+    window.onload = function() {
+        setSchedulingDefaultDateAndTime();
+        importEditJSON();
+    }
+
+    let isScheduleTaskHidden = true;
+
+    function toggleScheduleTask() {
+        const buttonApply1 = document.getElementById("apply1");
+        const buttonApply2 = document.getElementById("apply2");
+
+        if (isScheduleTaskHidden) {
+            buttonApply1.disabled = true;
+            buttonApply2.disabled = true;
+
+            showScheduleTask();
+            scheduleTask.scrollIntoView({behavior: 'instant'});
+            isScheduleTaskHidden = false;
+        } else {
+            buttonApply1.disabled = false;
+            buttonApply2.disabled = false;
+
+            hideScheduleTask();
+            isScheduleTaskHidden = true;
+        }
+    }
+
+    function showScheduleTask() {
+        const scheduleTask = document.getElementById('scheduleTask');
+        const scheduleTaskButton = document.getElementById('scheduleTaskButton');
+        scheduleTask.classList.remove('hidden');
+        scheduleTaskButton.className = 'btn btn-warning float-left';
+    }
+
+    function hideScheduleTask() {
+        const scheduleTask = document.getElementById('scheduleTask');
+        const scheduleTaskButton = document.getElementById('scheduleTaskButton');
+        scheduleTask.classList.add('hidden');
+        scheduleTaskButton.className = 'btn btn-secondary float-left';
+    }
+
+    let isDateTimeRepeatHidden = true;
+    function checkDateTimeVisible() {
+        const dateTimeRepeat = document.getElementById('dateTimeRepeat');
+        const repeatSelect = document.getElementById("repeat_select").value;
+        if (repeatSelect !== 'never' && isDateTimeRepeatHidden) {
+            dateTimeRepeat.classList.remove('hidden');
+            isDateTimeRepeatHidden = false;
+        } else if(repeatSelect === 'never' && !isDateTimeRepeatHidden) {
+            dateTimeRepeat.classList.add('hidden');
+            isDateTimeRepeatHidden = true;
+        }
+        displayDateAndTimeRepeat();
+    }
+
+    function displayDateAndTimeRepeat() {
+        const dateAndTimeRepeat = document.getElementById('dateAndTimeRepeat');
+        const dateNumRepetitions = document.getElementById('date_num_repetitions')
+        const repeatInput = document.getElementById("repeat_select_end").value;
+        if (repeatInput === 'never' || isDateTimeRepeatHidden) {
+            dateAndTimeRepeat.classList.add('hidden');
+            dateNumRepetitions.classList.add('hidden');
+        } else if (repeatInput === 'on_date_and_time') {
+            dateAndTimeRepeat.classList.remove('hidden');
+            dateNumRepetitions.classList.add('hidden');
+        } else if (repeatInput === 'num_repetitions') {
+            dateAndTimeRepeat.classList.add('hidden');
+            dateNumRepetitions.classList.remove('hidden');
+        }
+    }
+
+    function createTaskIfValid() {
+        let regex=/^[0-9]+$/;
+        const dateNumRepetitionsInput = document.getElementById('num_repetitions_input');
+        const dateNumRepetitionsValue = dateNumRepetitionsInput.value;
+        const repeatInput = document.getElementById("repeat_select_end").value;
+        const errorMessageNumRepetitions = document.getElementById('error-message-num-repetitions');
+        if (repeatInput === 'num_repetitions' && (!dateNumRepetitionsValue.match(regex) || parseInt(dateNumRepetitionsValue) < 1)) {
+            errorMessageNumRepetitions.classList.remove('hidden');
+        } else {
+            errorMessageNumRepetitions.classList.add('hidden');
+            createTask(true);
+        }
+    }
+
+    let thisButton;
+    let openedTaskType;
+    let openedId;
+    function editJob(taskType, id, thisB) {
+        document.body.classList.add('no-scrolling');
+        thisButton = thisB;
+        openedId = id;
+        let jobList;
+        const jobTypeDropdown = document.getElementById("taskTypeEdit");
+        if (taskType === "measurement_tasks") {
+            jobList = getMeasurementList('measurement_tasks');
+            jobTypeDropdown.value = "measurement_tasks";
+            openedTaskType = "measurement_tasks";
+        } else if (taskType === "background_tasks") {
+            jobList = getMeasurementList('background_tasks');
+            jobTypeDropdown.value = "background_tasks";
+            openedTaskType = "background_tasks";
+        } else {
+            jobList = getMeasurementList('background_later_tasks');
+            jobTypeDropdown.value = "background_later_tasks";
+            openedTaskType = "background_later_tasks";
+        }
+
+        const job = jobList[id];
+
+        const taskNameEdit = document.getElementById("taskNameEdit");
+
+        taskNameEdit.value = job.name;
+        taskTypeChange('Edit');
+
+        const imageNameEdit = document.getElementById("imageNameEdit");
+        imageNameEdit.value = job.image_name;
+        const hiddenContainer = document.getElementById("hiddenContainer");
+        hiddenContainer.style.display = "flex";
+        imageNameChange('Edit');
+
+        const networkEdit = document.getElementById("networkEdit");
+        networkEdit.checked = job.network === "host";
+
+        const envFieldsEdit = document.getElementById("env-fields-edit");
+        const inputs = envFieldsEdit.querySelectorAll("input, textarea");
+
+        const envVariables = job.environment;
+
+        let envVariablesMap;
+        if (envVariables !== null && envVariables !== "") {
+            envVariablesMap = Object.fromEntries(envVariables.map(envVariable => {
+                const [envVariableName, envVariableValue] = envVariable.split("=");
+                return [envVariableName, envVariableValue];
+            }));
+        }
+
+        if (inputs.length === 1 && inputs[0].id === 'environment_variables') {
+            let textAreaValue = "";
+            if (envVariables !== null && envVariables !== "") {
+                for (const [key, value] of Object.entries(envVariablesMap)) {
+                    textAreaValue += `${key}=${value};`;
+                }
+                textAreaValue = textAreaValue.slice(0,-1);
+            }
+            inputs[0].value = textAreaValue;
+        } else {
+            inputs.forEach(input => {
+                const id = input.id;
+                if (envVariablesMap.hasOwnProperty(id)) {
+                    input.value = envVariablesMap[id];
+                } else {
+                    input.value = "";
+                }
+            });
+        }
+
+        const pauseEdit = document.getElementById("pauseEdit");
+        pauseEdit.value = job.pause;
+    }
+
+    function closeEditJob() {
+        const hiddenContainer = document.getElementById("hiddenContainer");
+        document.body.classList.remove('no-scrolling');
+        hiddenContainer.style.display = "none";
+    }
+
+    function saveEditJob() {
+        const addedMeasurementTask = addMeasurementTask('Edit', getId(thisButton), true);
+        if (addedMeasurementTask) {
+            removeItem(thisButton, false);
+            closeEditJob();
+        }
+
+    }
+</script>
+<!-- A back button to go back to the device page -->
+<div class="container mt-5">
+
+    <div id="validationMessage"></div>
+
+    <div class="row">
+        <div class="col ps-4">
+            <h3>New Task</h3>
+        </div>
+        <div class="col text-end pe-4">
+            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#jsonImporter">
+                Import from JSON
+            </button>
+            <a href="{% url 'device' device_id=device.id %}" class="btn btn-secondary" role="button">Back</a>
+            <button id="apply1" type="button" class="btn btn-success end" onclick="createTask(false)">Apply</button>
+        </div>
+    </div>
+    <hr>
+
+    <div class="d-block p-2 bg-light text-black mb-5" style="border-radius: 0.25rem;">
+        <div class="mt-4 ps-4">
+            Here you can create a new task for the device <b>{{ device.name }}</b>. Therefore, each measurement runs
+            specific tasks, that are relevant for the measurement. These tasks are:
+        </div>
+        <ul class="mt-3 ps-5">
+            <li>Enabling relevant modem before starting one experiment iteration.</li>
+            <li>Setting target access technology if modem provides NB-IoT and LTE-M.</li>
+            <li>Setting operator, data connection and testing the connection.</li>
+            <li>Disabling modem after finishing one experiment iteration.</li>
+        </ul>
+    </div>
+
+    <div class="container">
+        <!-- Measurement Head -->
+        <div class="container">
+            <div class="row">
+                <div class="col">
+                    <h5>Measurement Head</h5>
+                </div>
+            </div>
+
+            <hr class="mt-0 mb-0">
+
+            <div class="row row-cols-3 g-3 mt-2">
+                <div class="col">
+                    <span id="invalid-character-name-input-1"
+                          class="invalid-input">Invalid input! Only characters, numbers and "_", "-" and "+" are allowed.</span>
+                    <label for="name" class="form-label ps-2">Name</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text">Specify the name of the measurement</span>
+                    </div>
+                    <input type="text" class="form-control" id="name" name="name" placeholder="Measurement Name"
+                           oninput="isCharacterValid(this.value, this.selectionStart);"
+                           onfocusout="hideInvalidCharacterMessage()"
+                           required>
+                </div>
+                <div class="col">
+                    <span id="invalid-character-name-input-2" class="hidden invalid-input">Invalid input! Only characters, numbers and "_", "-" and "+" are allowed.</span>
+                    <label for="modem" class="form-label ps-2">Modem</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text">Select the desired modem</span>
+                    </div>
+                    <select class="form-select" id="modem" name="modem" required onchange="modemChange(this.value)">
+                        <option value="" selected disabled hidden>Choose Modem</option>
+                        {% for modem in modems %}
+                            <option value="{{ modem.name }}">{{ modem.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col">
+                    <span id="invalid-character-name-input-3" class="hidden invalid-input">Invalid input! Only characters, numbers and "_", "-" and "+" are allowed.</span>
+                    <label for="access_technology" class="form-label ps-2">Access Technology</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text" id="right">Select the target radio access technology which is offered by the modems</span>
+                    </div>
+                    <select class="form-select" id="access_technology" name="access_technology" onchange="actChange()" disabled>
+                        <option value="all" selected>All</option>
+                        <option value="0">2G</option>
+                        <option value="8">LTE-M</option>
+                        <option value="9">NB-IoT</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <label for="iteration" class="form-label ps-2">Experiment iteration</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text">Specify the number of iterations which the experiment should run</span>
+                    </div>
+                    <input type="number" class="form-control" id="iteration" name="iteration" value="1" min="1"
+                           required>
+                </div>
+                <div class="col">
+                    <label for="operator_mode" class="form-label ps-2">Operator Mode</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text" id="middle">Select how the operator should be chosen for the measurement<br />
+                            <b>Any:</b> If the cellular modem is already connected to an operator, that operator will be maintained, otherwise it will switch to Random<br />
+                            <b>Random:</b> The network is scanned and a random operator is selected<br />
+                            <b>Manual:</b> You can choose a specific operator in this mode</span>
+                    </div>
+                    <select class="form-select" id="operator_mode" name="operator_mode" required
+                            onchange="operatorMode()">
+                        <option value="manual" selected>Manual</option>
+                        <option value="from_scan_results" id="operator_from_scan_results" disabled>From scan results (select a modem first)</option>
+                        <option value="any">Any</option>
+                        <option value="random">Random</option>
+                    </select>
+                </div>
+                <div class="col" id="operator_preset_section" hidden>
+                    <label for="operator-preset" class="form-label ps-2">Operator</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text" id="left">Choose an operator from the scan results</span>
+                    </div>
+
+                    {% for modem in modems %}
+                        <select class="form-select operator_preset_list" id="operator_preset_{{ modem.name }}" name="operator_preset_{{ modem.name }}" required>
+                            <option value="" selected disabled hidden>Choose Operator</option>
+                            {% if "operators" in modem.operators %}
+                                {% for operator in modem.operators.operators|dictsort:"act"|dictsort:"numeric_name" %}
+                                    <option value="1,2,{{ operator.numeric_name }},{{ operator.act }}" data-act="{{ operator.act }}">
+                                        {{ operator.long_name }} ({{ operator.act_as_text }}) only
+                                    </option>
+                                    <option value="4,2,{{ operator.numeric_name }},{{ operator.act }}" data-act="{{ operator.act }}">
+                                        {{ operator.long_name }} ({{ operator.act_as_text }}) with automatic fallback
+                                    </option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    {% endfor %}
+                </div>
+                <div class="col" id="operator_manual_section">
+                    <label for="operator" class="form-label ps-2">Operator</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text" id="right">Specify a specific operator if the Operator Mode is set to Manual</span>
+                    </div>
+                    <input type="text" class="form-control" id="operator" name="name"
+                           placeholder="4,2,26202,9;4,2,26202,0" required>
+                </div>
+                <div class="col">
+                    <label for="apn" class="form-label ps-2">APN</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text">Specify the Access Point Name for the network connection depending on the operator</span>
+                    </div>
+                    <input type="text" class="form-control" id="apn" name="apn" value="em" onchange="apnChange(this.value)" required>
+                </div>
+                <div class="col">
+                    <label for="iptype" class="form-label ps-2">IP Type</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text">Select the type of IP address used for setting a data connection</span>
+                    </div>
+                    <select class="form-select" id="iptype" name="iptype" required>
+                        <option value="ipv4">IPv4</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <label for="experiment_pause" class="form-label ps-2">Experiment Pause (sec)</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text" id="right">Specify the duration in seconds to pause between experiment iterations</span>
+                    </div>
+                    <input type="number" class="form-control" id="experiment_pause" name="experiment_pause" value="60"
+                           min="0" required>
+                </div>
+                <div class="col">
+                    <label for="background_pause" class="form-label ps-2">Background Pause (sec)</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text">Specify the duration in seconds to pause between background jobs</span>
+                    </div>
+                    <input type="number" class="form-control" id="background_pause" name="background_pause"
+                           value="60" min="0" required>
+                </div>
+
+                <!-- number of how many times the experiment should be repeated -->
+                <div class="col">
+                    <label for="samples" class="form-label ps-2">Measurement Repetitions</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text">Specify the number of measurement tasks to be created with the selected configurations and jobs</span>
+                    </div>
+                    <input type="number" class="form-control" id="samples" name="samples" value="1" min="1" required>
+                </div>
+
+            </div>
+            <div id="act_config" class="row row-cols-3 g-3 mt-2" hidden>
+                <div class="col">
+                    <label for="gsm_band" class="form-label ps-2">2G Band</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text">The available frequency bands for the country/continent can be seen in the table</span>
+                    </div>
+                    <input type="text" class="form-control" id="gsm_band" name="gsm_band" placeholder="0F">
+                </div>
+                <div class="col">
+                    <label for="catm1_band" class="form-label ps-2">LTE-M Band</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text">The available frequency bands for the country/continent can be seen in the table</span>
+                    </div>
+                    <input type="text" class="form-control" id="catm1_band" name="catm1_band"
+                           placeholder="0000000000080000">
+                </div>
+                <div class="col">
+                    <label for="nbiot_band" class="form-label ps-2">NB-IoT Band</label>
+                    <div class="hover-text">?
+                        <span class="tooltip-text" id="right">The available frequency bands for the country/continent can be seen in the table</span>
+                    </div>
+                    <input type="text" class="form-control" id="nbiot_band" name="nbiot_band"
+                           placeholder="0000000000080000">
+                </div>
+                <h5 class="table-heading">The available frequency bands for the country/continent</h5>
+                <table class="table">
+                    <tr>
+                        <th>Band</th>
+                        <th>DL Freq. (MHz)</th>
+                        <th>Applicability as per 3GPP TS36.1.0.1</th>
+                        <th>U.S.</th>
+                        <th>China</th>
+                        <th>The Middle East</th>
+                        <th>Japan</th>
+                        <th>Korea</th>
+                        <th>Europe</th>
+                        <th>Australia</th>
+                    </tr>
+                    <tr>
+                        <td>B1</td>
+                        <td>2100</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                    </tr>
+                    <tr>
+                        <td>B2</td>
+                        <td>1900</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                    </tr>
+                    <tr>
+                        <td>B3</td>
+                        <td>1800</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span>&#x2713;</span></td>
+                    </tr>
+                    <tr>
+                        <td>B4</td>
+                        <td>1700</td>
+                        <td>Cat M1</td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                    </tr>
+                    <tr>
+                        <td>B5</td>
+                        <td>850</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                    </tr>
+                    <tr>
+                        <td>B8</td>
+                        <td>900</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                    </tr>
+                    <tr>
+                        <td>B12/B17</td>
+                        <td>700</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                    </tr>
+                    <tr>
+                        <td>B13</td>
+                        <td>700</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                    </tr>
+                    <tr>
+                        <td>B18</td>
+                        <td>800</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                    </tr>
+                    <tr>
+                        <td>B19</td>
+                        <td>800</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                    </tr>
+                    <tr>
+                        <td>B20</td>
+                        <td>800</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                    </tr>
+                    <tr>
+                        <td>B26</td>
+                        <td>850</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                    </tr>
+                    <tr>
+                        <td>B28</td>
+                        <td>700</td>
+                        <td>Cat M1/NB1</td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                    </tr>
+                    <tr>
+                        <td>B39</td>
+                        <td>1900</td>
+                        <td>Cat M1</td>
+                        <td><span></span></td>
+                        <td><span>&#x2713;</span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                        <td><span></span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Measurement Body -->
+        <div class="container">
+            <div class="row mt-4">
+                <div class="col">
+                    <h5>Measurement Body</h5>
+                </div>
+            </div>
+
+            <hr class="mt-0 mb-0">
+
+            <div class="row mt-4">
+                <!-- Left Section - List of Items -->
+                <div class="col-md-3">
+                    <h6 class="ps-3">Measurement Jobs</h6>
+                    <ul id="measurement_tasks" style="list-style-type: none; padding: 0;">
+                    </ul>
+                </div>
+
+                <div class="col-md-3">
+                    <h6 class="ps-3">Background Jobs</h6>
+                    <ul id="background_tasks" style="list-style-type: none; padding: 0;">
+                    </ul>
+                </div>
+
+                <div class="col-md-3">
+                    <h6 class="ps-3">Enhanced Background Jobs</h6>
+                    <ul id="background_later_tasks" style="list-style-type: none; padding: 0;">
+                    </ul>
+                </div>
+
+                <!-- Right Section - Form -->
+                <div class="col-md-3">
+                    <h6 class="ps-3">Add Job</h6>
+                    <form id="taskForm">
+                        <div class="mb-2">
+                            <label for="taskName" class="form-label ps-2">Job Name</label>
+                            <input type="text" class="form-control" id="taskName" name="name" required>
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="taskType" class="form-label ps-2">Job Type</label>
+                            <select class="form-select" id="taskType" name="taskType" onchange="taskTypeChange('')">
+                                <option value="" selected disabled hidden>Choose Job Type</option>
+                                <option value="background_tasks">Background Task</option>
+                                <option value="measurement_tasks">Measurement Task</option>
+                                <option value="background_later_tasks">Enhanced Background Task</option>
+                                <!-- Add more options as needed -->
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="imageName" class="form-label ps-2">Docker Image</label>
+                            <select class="form-select" id="imageName" name="imageName" onchange="imageNameChange('')">
+                                <option value="" selected disabled hidden>Choose Image</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-2" id="tf_device_dropdown" hidden>
+                            <label for="tf_device" class="form-label ps-2">Device</label>
+                            <select class="form-select" id="tf_device" name="tf_device">
+                                <option value="" selected disabled hidden>Choose Device</option>
+                                {% for modem in modems %}
+                                    <option value="{{ modem.name }}">{{ modem.name }}</option>
+                                {% endfor %}
+                                <option value="Raspberry Pi">Raspberry Pi</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="network" class="form-label ps-2">Run on host network?</label>
+                            <input type="checkbox" class="form-check-input" id="network" name="network"
+                                   onclick="networkChange()" checked value="host">
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="environment_variables" class="form-label ps-2">Environment Variables</label>
+                            <br>
+                            <br>
+                            <div id="env-fields"></div>
+                            <a>*required</a>
+                        </div>
+
+
+                        <div class="mb-2">
+                            <label for="pause" class="form-label ps-2">Pause (sec)</label>
+                            <input type="number" class="form-control" id="pause" name="pause"
+                                   value="0" min="0">
+                        </div>
+
+                        <input type="hidden" id="docker_logger" name="docker_logger" value="false" hidden>
+                        <input type="hidden" id="docker_log_path" name="output_file" value="" hidden>
+
+                        <button type="button" class="btn btn-primary" onclick="addMeasurementTask('')">Add Job</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Section - Form -->
+            <div id="hiddenContainer" class="hidden-container">
+                <div class="col-md-3 hidden-inputs">
+                    <div id="hiddenTaskFormContainer">
+                        <form id="taskForm">
+                            <div class="mb-2">
+                                <label for="taskNameEdit" class="form-label ps-2">Job Name</label>
+                                <input type="text" class="form-control" id="taskNameEdit" name="name" required>
+                            </div>
+
+                            <div class="mb-2">
+                                <label for="taskTypeEdit" class="form-label ps-2">Job Type</label>
+                                <select class="form-select" id="taskTypeEdit" name="taskTypeEdit" onchange="taskTypeChange('Edit')">
+                                    <option value="" selected disabled hidden>Choose Job Type</option>
+                                    <option value="background_tasks">Background Task</option>
+                                    <option value="measurement_tasks">Measurement Task</option>
+                                    <option value="background_later_tasks">Enhanced Background Task</option>
+                                    <!-- Add more options as needed -->
+                                </select>
+                            </div>
+
+                            <div class="mb-2">
+                                <label for="imageNameEdit" class="form-label ps-2">Docker Image</label>
+                                <select class="form-select" id="imageNameEdit" name="imageNameEdit" onchange="imageNameChange('Edit')">
+                                    <option value="" selected disabled hidden>Choose Image</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-2" id="tf_device_dropdown_edit" hidden>
+                                <label for="tf_device_edit" class="form-label ps-2">Device</label>
+                                <select class="form-select" id="tf_device_edit" name="tf_device_edit">
+                                    <option value="" selected disabled hidden>Choose Device</option>
+                                    {% for modem in modems %}
+                                        <option value="{{ modem.name }}">{{ modem.name }}</option>
+                                    {% endfor %}
+                                    <option value="Raspberry Pi">Raspberry Pi</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-2">
+                                <label for="networkEdit" class="form-label ps-2">Run on host network?</label>
+                                <input type="checkbox" class="form-check-input" id="networkEdit" name="networkEdit"
+                                       onclick="networkChange()" checked value="host">
+                            </div>
+
+                            <div class="mb-2">
+                                <label for="environment_variables" class="form-label ps-2">Environment Variables</label>
+                                <br>
+                                <br>
+                                <div id="env-fields-edit"></div>
+                                <a>*required</a>
+                            </div>
+
+
+                            <div class="mb-2">
+                                <label for="pauseEdit" class="form-label ps-2">Pause (sec)</label>
+                                <input type="number" class="form-control" id="pauseEdit" name="pauseEdit"
+                                       value="0" min="0">
+                            </div>
+
+                            <input type="hidden" id="docker_logger_edit" name="docker_logger_edit" value="false" hidden>
+                            <input type="hidden" id="docker_log_path_edit" name="output_file" value="" hidden>
+
+                            <button type="button" class="btn btn-primary" onclick="saveEditJob()">Save Changes</button>
+                        <button type="button" class="btn btn-secondary button-float-right" onclick="closeEditJob()">Cancel</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- A submit button to create a new task. Create an area in grey behind it  -->
+        <div class="d-block p-2 bg-light text-white mt-5" style="border-radius: 0.25rem;">
+            <div class="row">
+                <div class="col text-end pe-4">
+                    {% if has_perm_schedule_measurements %}
+                        <button type="button" id="scheduleTaskButton" class="btn btn-secondary float-left" onclick="toggleScheduleTask(true)">Schedule Task</button>
+                    {% endif %}
+
+                    <a href="{% url 'device' device_id=device.id %}" class="btn btn-secondary" role="button">Back</a>
+                    <button id="apply2" type="button" class="btn btn-success end" onclick="createTask(false)">Apply</button>
+                </div>
+            </div>
+            {% if has_perm_schedule_measurements %}
+                <div class="row">
+                    <div class="col text-end pe-4">
+                        <div id="scheduleTask" class="hidden">
+                            <div class="schedule-container">
+                                <br/>
+                                <div class="float-left">
+                                    <label for="date_input" class="schedule-label">Date</label>
+                                    <input type="date" id="date_input" name="date_input" class="schedule-input" title="Select the date"/>
+                                </div>
+                                <div class="float-left">
+                                    <label for="time_input" class="schedule-label">Time</label>
+                                    <input type="time" id="time_input" name="time_input" class="schedule-input"/>
+                                </div>
+                            </div>
+                            <div class="schedule-container">
+                                <div class="float-left">
+                                    <label for="repeat_select" class="schedule-label">Repeat</label>
+                                    <select id="repeat_select" name="repeat_select" class="schedule-input" onchange="checkDateTimeVisible()">
+                                        <option value="never" selected>never</option>
+                                        <option value="15-minutes">every 15 minutes</option>
+                                        <option value="30-minutes">every 30 minutes</option>
+                                        <option value="hour">every hour</option>
+                                        <option value="2-hours">every 2 hours</option>
+                                        <option value="4-hours">every 4 hours</option>
+                                        <option value="6-hours">every 6 hours</option>
+                                        <option value="8-hours">every 8 hours</option>
+                                        <option value="12-hours">every 12 hours</option>
+                                        <option value="day">every day</option>
+                                        <option value="2-days">every 2 days</option>
+                                        <option value="week">every week</option>
+                                    </select>
+                                </div>
+                                <div id="dateTimeRepeat" class="hidden">
+                                    <div class="float-left">
+                                        <label for="repeat_select_end" class="schedule-label">Ends</label>
+                                        <select id="repeat_select_end" name="repeat_select_end" class="schedule-input" onchange="displayDateAndTimeRepeat()">
+                                            <option value="never" selected>never</option>
+                                            <option value="on_date_and_time">on a specific date and time</option>
+                                            <option value="num_repetitions">after a number of repetitions</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div id="dateAndTimeRepeat" class="hidden">
+                                    <div class="float-left">
+                                        <label for="date_input_repeat" class="schedule-label">Date</label>
+                                        <input type="date" id="date_input_repeat" name="date_input_repeat" class="schedule-input" title="Select the date"/>
+                                    </div>
+                                    <div class="float-left">
+                                        <label for="time_input_repeat" class="schedule-label">Time</label>
+                                        <input type="time" id="time_input_repeat" name="time_input_repeat" class="schedule-input"/>
+                                    </div>
+                                </div>
+                                <div id="date_num_repetitions" class="hidden">
+                                    <div class="float-left">
+                                        <label for="num_repetitions_input" class="schedule-label">Number of repetitions</label>
+                                        <input type="number" class="schedule-input" id="num_repetitions_input" value="1" min="1">
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="error-message-num-repetitions" class="hidden">
+                                <br>
+                                <span class="error-message">Invalid input for number of repetitions. Only integers greater 0 are allowed.</span>
+                                <br>
+                            </div>
+                            <div class="schedule-container">
+                                <button type="button" class="btn btn-success end float-left schedule-button" onclick="createTaskIfValid()">Apply scheduled Task</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

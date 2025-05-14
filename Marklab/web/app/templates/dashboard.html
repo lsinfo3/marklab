@@ -1,0 +1,67 @@
+<!-- dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% include 'head_static/bootstrap.html' %}
+
+    <title>Device Dashboard</title>
+</head>
+<body class="p-3 m-0 border-0 bd-example m-0 border-0">
+
+{% include 'navbar.html' %}
+
+<div class="container mt-5">
+    <h3 class="ps-3">Device Dashboard</h3>
+    <hr>
+
+    <div class="row mt-4">
+        {% for device in devices %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100" style="background-color: #f4f4f4; border-style: inset">
+                    <div class="card-body">
+                        <h5 class="card-title text-center mt-2 mb-4">{{ device.name }}</h5>
+                        <!-- divider -->
+                        <p class="card-text">Location:
+                            {% if device.location == '' %}
+                                <span class="badge bg-secondary">Unknown</span>
+                            {% else %}
+                                {{ device.location }}
+                            {% endif %}
+                        </p>
+                        <hr>
+                        <!-- two columns: left status, right view button -->
+                        <div class="d-flex justify-content-between">
+                            {% if device.processing_task %}
+                                <div><span style="color: #4589d3">●</span> processing</div>
+                            {% elif "hour(s)" in device.time_since_checkin %}
+                                <div><span style="color: #bbbbbb">●</span> unknown</div>
+                            {% elif device.status == 'online' %}
+                                <div><span style="color: #4caf50">●</span> {{ device.status }}</div>
+                            {% elif device.status == 'offline' %}
+                                <div><span style="color: #f44336">●</span> {{ device.status }}</div>
+                            {% else %}
+                                <div><span style="color: #ffaf37">●</span> {{ device.status }}</div>
+                            {% endif %}
+                            <a href="{% url 'device' device_id=device.id %}" class="btn btn-primary" style="background-color: #333333; border-style: none" role="button">View</a>
+                        </div>
+
+                        <!-- last time seen -->
+                        <p class="card-text">
+                            Health check: <b>{{ device.time_since_checkin }}</b><br>
+                            Tasks in Pipeline: <b>{{ device.open_tasks }}</b><br>
+                            {% if not device.allow_new_task %}
+                                <span><b>This device is reserved for another user</b></span>
+                            {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+</body>
+</html>

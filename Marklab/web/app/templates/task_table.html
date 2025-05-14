@@ -1,0 +1,360 @@
+{% load static %}
+<script src="{% static 'task_table.js' %}"></script>
+<style>
+    .status-icon {
+        font-size: 1.5em; /* Makes the icon bigger */
+        font-weight: bold; /* Makes the icon heavier */
+    }
+
+    .table-not-visible {
+        display: none;
+    }
+
+    .flex {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .flex hr {
+        flex-grow: 1;
+    }
+
+    .text-scheduled {
+        font-size: 16px;
+        font-weight: normal;
+    }
+
+    .selection-visible-container {
+        float: right;
+        display: inline-block;
+        z-index: 800;
+        background-color: blue;
+        padding: 8px;
+        border-radius: 10px;
+    }
+
+    .white-font {
+        color: white;
+    }
+
+    /* Specific colors for each status */
+    .status-icon[title="Completed"] { color: green; }
+    .status-icon[title="Failed"] { color: red; }
+    .status-icon[title="Running"] { color: blue; }
+    .status-icon[title="Pending"] { color: orange; }
+    .status-icon[title="Scheduled"] { color: darkorange; }
+
+    .select-next-to-button {
+        display: flex;
+        align-items: center;
+        max-width: 90%;
+        margin: 4px auto 0;
+    }
+
+    .margin-right {
+        margin-right: 4px;
+    }
+
+    .td-width {
+        width: 18%;
+    }
+
+    .filter-date-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .date-label {
+        font-size: 16px;
+        color: black;
+    }
+
+    .date-input {
+        height: 28px;
+        font-size: 16px;
+        border-radius: 6px;
+        border: 1px solid;
+        margin-left: 2px;
+        margin-right: 10px;
+    }
+
+    .margin-left {
+        margin-left: 10px;
+    }
+
+    .filter-task-status-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .select-width {
+        width: auto;
+    }
+</style>
+<div class="mt-2">
+
+    <!-- row with title and buttons to download and delete selected tasks -->
+    <div class="row">
+        <div class="col-6">
+            <form id="filter_date_form" method="get">
+                {% if request.GET.task_table_filter_end_date and request.GET.filter_task_status_select %}
+                    <input type="hidden" name="task_table_filter_start_date" value="{{ request.GET.task_table_filter_start_date }}">
+                    <input type="hidden" name="task_table_filter_end_date" value="{{ request.GET.task_table_filter_end_date }}">
+                    <input type="hidden" id="filter_task_status_select_hidden" name="filter_task_status_select" value="{{ request.GET.filter_task_status_select }}">
+                {% endif %}
+
+                <button id="showTasksTable" name="switchTasksTable" value="showTasksTable" class="btn {% if selected_table == 'tasksTable' %} btn-secondary {% else %} btn-outline-secondary {% endif %}" type="submit">Tasks ({{ num_tasks }})</button>
+                <button id="showArchivedTasksTable" name="switchTasksTable" value="showArchivedTasksTable" class="btn {% if selected_table == 'archivedTasksTable' %} btn-secondary {% else %} btn-outline-secondary {% endif %}" type="submit">Archived Tasks ({{ num_archived_tasks }})</button>
+                <button id="showScheduledTasksTable" name="switchTasksTable" value="showScheduledTasksTable" class="btn {% if selected_table == 'scheduledTasksTable' %} btn-secondary {% else %} btn-outline-secondary {% endif %}" type="submit">Scheduled Tasks ({{ num_scheduled_tasks }})</button>
+            </form>
+        </div>
+        <div class="col-6">
+            <div id="selectionVisible" class="selection-visible-container">
+                <div class="d-flex justify-content-end gap-1 align-items-center">
+                    <form id="downloadResultsForm" action="{% url 'selection' %}" method="post">
+                        <input type="hidden" name="task_ids" value="">
+                        <input type="hidden" name="selected_action" value="">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                        {% if request.path_info != '/history/' %}
+                            <input type="hidden" name="device_id" value="{{ device.id }}">
+                        {% endif %}
+                    </form>
+                    <div class="white-font">Selection:</div>
+                    <button class="btn btn-light" id="downloadSelected"
+                        onclick="runSelectionAction('#taskTable','download')"
+                        type="button" title="Download">
+                        <i class="bi bi-cloud-download"></i>
+                    </button>
+                    {% if selected_table != 'archivedTasksTable' %}
+                        <button class="btn btn-light" id="deleteSelected"
+                            onclick="runSelectionAction('#taskTable','delete')"
+                            type="button" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    {% else %}
+                        <button class="btn btn-light" id="deleteSelected"
+                            onclick="runSelectionAction('#taskTable','delete')"
+                            type="button" title="Undo archiving">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <hr>
+
+    <div class="filter-date-container">
+        <form id="filter_date_form" method="get">
+            {% if request.GET.switchTasksTable %}
+                <input type="hidden" name="switchTasksTable" value="{{ request.GET.switchTasksTable }}">
+            {% endif %}
+
+            <label for="task_table_filter_start_date" class="date-label">Start Date:</label>
+            <input type="date" id="task_table_filter_start_date" name="task_table_filter_start_date" title="Select the start date (leave it empty if you don't need a start date)" class="date-input"/>
+
+            <label for="task_table_filter_end_date" class="date-label">End Date:</label>
+            <input type="date" id="task_table_filter_end_date" name="task_table_filter_end_date" title="Select the end date" class="date-input"/>
+
+            <label for="filter_task_status_select" class="date-label">Status:</label>
+            <select id="filter_task_status_select" name="filter_task_status_select" class="date-input">
+                <option value="all" selected>All</option>
+                {% if selected_table == 'tasksTable' %}
+                    <option value="pending">Pending</option>
+                    <option value="running">Running</option>
+                {% endif %}
+                {% if selected_table == 'tasksTable' or selected_table == 'archivedTasksTable' %}
+                    <option value="completed">Completed</option>
+                    <option value="failed">Failed</option>
+                {% endif %}
+            </select>
+
+            <button id="submit_filter_date_button" class="btn btn-secondary" type="submit">Filter</button>
+        </form>
+        <form id="clear_filter_form" method="get">
+            {% if request.GET.switchTasksTable %}
+                <input type="hidden" name="switchTasksTable" value="{{ request.GET.switchTasksTable }}">
+            {% endif %}
+
+            <input type="hidden" id="clear_filter" name="clear_filter" value="true"/>
+            <button id="clear_filter_date_button" class="btn btn-secondary margin-left" type="submit" disabled>Clear Filter</button>
+        </form>
+    </div>
+
+    <table id="taskTable" class="table table-striped table-hover table-bordered mt-3">
+        <thead>
+        <tr style="text-align: center">
+            <th scope="col"></th>
+            <th scope="col"></th>
+            <th scope="col">#</th>
+            <th scope="col">Name</th>
+            {% if request.path_info == '/history/' %}
+                <th scope="col">Device</th>
+            {% endif %}
+            <th scope="col">Create at</th>
+            <th scope="col">Start at</th>
+            <th scope="col">Completed at</th>
+            <th scope="col" style="width: 9%">Json</th>
+            <th scope="col">Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for task in tasks %}
+            <tr style="text-align: center" id="taskRow{{ task.id }}"
+                data-json="{{ task.instruction }}" data-status="{{ task.status }}" data-has-result="{{ task.result_path|yesno:'true,false' }}">
+                <td>
+                    {{ task.id }}
+                </td>
+                <td>
+                    {% if task.status == 'completed' %}
+                        <span class="status-icon bi bi-check-circle-fill text-success" title="Completed"></span>
+                    {% elif task.status == 'failed' %}
+                        <span class="status-icon bi bi-x-circle-fill text-danger" title="Failed"></span>
+                    {% elif task.status == 'running' %}
+                        <span class="status-icon bi bi-play-circle-fill text-primary" title="Running"></span>
+                    {% elif task.status == 'scheduled-pending' or task.status == 'scheduled-running' or task.status == 'scheduled-completed' or task.status == 'scheduled-failed' %}
+                        {% if task.status == 'scheduled-pending' %}
+                            <span class="status-icon bi bi-calendar" title="Scheduled">
+                        {% elif task.status == 'scheduled-running' %}
+                            <span class="status-icon bi bi-play-circle-fill" title="Running">
+                        {% elif task.status == 'scheduled-failed' %}
+                            <span class="status-icon bi bi-x-circle-fill text-danger" title="Failed"></span>
+                        {% else %}
+                            <span class="status-icon bi bi-check-circle-fill text-success" title="Completed">
+                        {% endif %}
+                            <br/>
+                            <span class="text-scheduled">{{ task.date }}, {{ task.time }}</span>
+                            {% if task.repeat_scheduled_task != 'never' %}
+                                <br/>
+                                <span class="text-scheduled">repeat every {{ task.repeat_scheduled_task }}</span>
+
+                                {% if task.end_repetition_scheduled_task == 'on_date_and_time' %}
+                                    <br/>
+                                    <span class="text-scheduled">End: {{ task.repetition_end_date }}, {{ task.repetition_end_time }}</span>
+                                {% elif task.end_repetition_scheduled_task == 'num_repetitions' %}
+                                    <br/>
+                                    <span class="text-scheduled">Repetition: {{ task.repetition_count }} of {{ task.num_repetitions }}</span>
+                                {% else %}
+                                    <br/>
+                                    <span class="text-scheduled">No End</span>
+                                {% endif %}
+                            {% endif %}
+                        </span>
+                    {% else %}
+                        <span class="status-icon bi bi-hourglass-split text-warning" title="Pending"></span>
+                    {% endif %}
+                </td>
+
+                <td>{{ task.id }}</td>
+                <td>{{ task.name }}</td>
+                {% if request.path_info == '/history/' %}
+                    <td>{{ task.device.name }}</td>
+                {% endif %}
+
+                <td>
+                    {% if task.created_at %}
+                        {{ task.created_at  | date:"d.m.y  H:i:s"  }}
+                    {% else %}
+                        <span>-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if task.started_at %}
+                        {{ task.started_at  | date:"d.m.y  H:i:s"  }}
+                    {% else %}
+                        <span>-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if task.completed_at %}
+                        {{ task.completed_at | date:"d.m.y  H:i:s" }}
+                    {% else %}
+                        <span>-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <button class="btn btn-secondary copyJsonButton"
+                            onclick="copyJson('{{ task.id }}')"
+                            type="button" title="Copy Json">
+                        Copy
+                    </button>
+                </td>
+                <td>
+                    <button class="btn btn-dark"
+                            onclick="window.location.href = '{% url 'preview_task' task_id=task.id %}'"
+                            type="button" title="Preview">
+                        <i class="bi bi-eye"></i>
+                    </button>
+
+                    <button class="btn btn-secondary editTaskButton"
+                        {% if request.path_info == '/history/' %}
+                            onclick="deleteAndEditTask('{{ task.id }}', '{{ task.status }}', '{% url 'delete_task' task_id=task.id %}', '{{ csrf_token }}', '{% url 'task' device_id=task.device.id %}')"
+                        {% else %}
+                            onclick="deleteAndEditTask('{{ task.id }}', '{{ task.status }}', '{% url 'delete_task' task_id=task.id %}', '{{ csrf_token }}', '{% url 'task' device_id=device.id %}')"
+                        {% endif %}
+                        {% if task.status == 'pending' %}
+                            title="Remove and edit"
+                        {% else %}
+                            title="Edit and rerun"
+                        {% endif %}
+                        type="button">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+
+                    {% if task.result_path %}
+                        <button class="btn btn-success"
+                                onclick="window.location.href = '{% url 'download' task_id=task.id %}'"
+                                type="button" title="Download">
+                            <i class="bi bi-cloud-download"></i>
+                        </button>
+                    {% else %}
+                        <button type="button" class="btn btn-primary"
+                                style="background-color: #4caf50; border-style: none" disabled
+                                title="No file to download">
+                            <i class="bi bi-cloud-download"></i>
+                        </button>
+                    {% endif %}
+
+                    {% if selected_table == 'archivedTasksTable' %}
+                        <button type="button" class="btn btn-danger"
+                                    onclick="undoArchivingTask('{% url 'delete_task' task_id=task.id %}', '{{ csrf_token }}')" title="Undo archiving">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                    {% elif task.status == 'completed' or task.status == 'scheduled-completed' or task.status == 'failed' or task.status == 'scheduled-failed' %}
+                        <button type="button" class="btn btn-danger"
+                                onclick="archiveTask('{% url 'delete_task' task_id=task.id %}', '{{ csrf_token }}')" title="Archive">
+                            <i class="bi bi-archive"></i>
+                        </button>
+                    {% elif task.status != 'running' and task.status != 'scheduled-running' %}
+                        <button type="button" class="btn btn-danger"
+                                onclick="deleteTask('{% url 'delete_task' task_id=task.id %}', '{{ csrf_token }}')" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    {% else %}
+                        <button type="button" class="btn btn-danger" onclick="stopTask('{%  url 'stop_task' task_id=task.id %}', '{{ csrf_token }}')" title="Stop">
+                            <i class="bi bi-stop"></i>
+                        </button>
+                    {% endif %}
+                    {% if selected_table != 'archivedTasksTable' %}
+                        <div class="select-next-to-button">
+                            <select class="form-select margin-right" id="device_rerun{{ task }}" name="device_rerun{{ task }}" title="Select the Device for the Rerun">
+                                {% for d in devices %}
+                                    <option value="{{ d.id }}" {% if request.path_info == '/history/' and d.id == task.device.id or d.id == device.id %} selected {% endif %}>{{ d.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-warning" title="Rerun"
+                                    onclick="rerunTask('{% url 'rerun_task' task_id=task.id device_id='placeholder_device_id' %}'.replace('placeholder_device_id', document.getElementById('device_rerun{{ task }}').value), '{{ csrf_token }}')">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </button>
+                        </div>
+                    {% endif %}
+
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

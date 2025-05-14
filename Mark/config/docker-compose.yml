@@ -1,0 +1,115 @@
+services:
+  build_operator_modem_setup:
+    build:
+      context: ../
+      dockerfile: ./setup/operator_modem_setup/Dockerfile
+    image: setup-operator-modem
+
+  build_modem_controller:
+    build:
+      context: ../
+      dockerfile: ./setup/modem_controller/Dockerfile
+    image: setup-controller-modem
+
+  build_modem_act_setup:
+    build:
+      context: ../
+      dockerfile: ./setup/modem_act_setup/Dockerfile
+    image: setup-modem-act
+
+  build_operator_scan:
+    build:
+      context: ../
+      dockerfile: ./setup/operator_scan/Dockerfile
+    image: scan-operator
+
+  # measurement
+  build_upload_curl:
+    build:
+      context: ../
+      dockerfile: ./measurements/upload/Dockerfile
+    image: exp-upload-curl
+
+  build_temperature:
+    build:
+      context: ../
+      dockerfile: ./measurements/temperature/Dockerfile
+    image: exp-temperature
+
+  build_system_information:
+    build:
+      context: ../
+      dockerfile: ./measurements/system_information/Dockerfile
+    image: exp-system-information
+
+  build_signal_strength:
+    build:
+      context: ../
+      dockerfile: ./measurements/signal_strength/Dockerfile
+    image: exp-signal-strength
+
+  build_bricklet_voltage_current:
+      build:
+        context: ../
+        dockerfile: ./measurements/energy/Dockerfile
+      image: exp-bricklet-voltage-current
+
+  build_download_curl:
+      build:
+        context: ../
+        dockerfile: ./measurements/download/Dockerfile
+      image: exp-download-curl
+
+  build_delay_ping:
+      build:
+          context: ../
+          dockerfile: ./measurements/delay/Dockerfile
+      image: exp-delay-ping
+
+  build_position_gps:
+      build:
+          context: ../
+          dockerfile: ./measurements/gps/Dockerfile
+      image: exp-position-gps
+
+  build_network_report:
+      build:
+          context: ../
+          dockerfile: ./measurements/network_report/Dockerfile
+      image: exp-network-report
+
+  build_curl_ip_address:
+      build:
+          context: ../
+          dockerfile: ./measurements/curl_ip_address/Dockerfile
+      image: get-ip-address
+
+  build_exp_route_traceroute:
+      build:
+          context: ../
+          dockerfile: ./measurements/traceroute/Dockerfile
+      image: exp-route-traceroute
+
+  build_exp_delay_fping:
+      build:
+          context: ../
+          dockerfile: ./measurements/fping_delay/Dockerfile
+      image: exp-delay-fping
+
+  build_exp_delay_hping:
+      build:
+          context: ../
+          dockerfile: ./measurements/hping_delay/Dockerfile
+      image: exp-delay-hping
+
+  build_at_commander:
+      build:
+          context: ../
+          dockerfile: ./measurements/at_commander/Dockerfile
+      image: at-commander
+
+  build_packet_capture:
+    build:
+      context: ../
+      dockerfile: ./measurements/packet_capture/Dockerfile
+    image: packet-capture

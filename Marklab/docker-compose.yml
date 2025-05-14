@@ -1,0 +1,59 @@
+services:
+  marklab-web: # Only use a dash here for django compatibility
+    build: "./web"
+    depends_on:
+      marklab_database:
+        condition: service_healthy
+    develop:
+      watch:
+        - path: ./web/
+          action: sync+restart
+          target: /marklab_web/
+    env_file: ".env"
+    networks:
+      - marklab_network
+    ports:
+      - "81:80"
+    restart: always
+    volumes:
+      - "$RESULTS_FOLDER:$RESULTS_FOLDER"
+      - "$SSH_FOLDER:/root/.ssh"
+
+  marklab_database:
+    image: "postgres:17.4"
+    env_file: ".env"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $POSTGRES_DB -U $POSTGRES_USER"]
+      start_period: 1m
+      start_interval: 2s
+      interval: 1m
+      timeout: 10s
+      retries: 3
+    networks:
+      - marklab_network
+    ports:
+      - "5432:5432"
+    restart: always
+    shm_size: "128mb" # From https://hub.docker.com/_/postgres
+    volumes:
+      - "./database_postgres:/var/lib/postgresql/data"
+
+  marklab_proxy:
+    build: "./proxy"
+    depends_on:
+      marklab-web:
+        condition: service_started
+    develop:
+      watch:
+        - path: ./proxy/marklab.conf
+          action: sync+restart
+          target: /marklab_proxy/marklab.conf
+    networks:
+      - marklab_network
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+
+networks:
+  marklab_network:

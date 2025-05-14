@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% include 'head_static/bootstrap.html' %}
+    {% include 'head_static/jquery.html' %}
+
+    <title>Task preview: {{ task.name }}</title>
+
+    <style>
+        #taskForm {
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 10px;
+        }
+    </style>
+
+</head>
+
+<body class="p-3 m-0 border-0 bd-example m-0 border-0">
+{% include 'navbar.html' %}
+{% include 'json_import.html' %}
+{% load static %}
+
+<div class="container mt-5">
+
+
+    <div class="row">
+        <div class="col ps-4">
+            <h4>Task: {{ task.name }}</h4>
+        </div>
+        <div class="col text-end pe-4">
+            <a href="{% url 'device' device_id=device_id %}" class="btn btn-secondary" role="button">Back</a>
+        </div>
+    </div>
+    <hr>
+
+    <div class="container">
+        <!-- Measurement Head -->
+        <div class="container">
+            <div class="row">
+                <div class="col">
+                    <h5>Measurement Head</h5>
+                </div>
+            </div>
+
+            <hr class="mt-0 mb-0">
+
+            <div class="row row-cols-3 g-3 mt-2">
+                <div class="col">
+                    <label for="name" class="form-label ps-2">Name</label>
+                    <!-- show only the information without input -->
+                    <input type="text" class="form-control" id="name" value="{{ task.name }}" disabled>
+                </div>
+                <div class="col">
+                    <label for="modem" class="form-label ps-2">Modem</label>
+                    <input type="text" class="form-control" id="modem" value="{{ task.instruction.modem }}" disabled>
+                </div>
+                <div class="col">
+                    <label for="access_technology" class="form-label ps-2">Access Technology</label>
+                    <input type="text" class="form-control" id="access_technology"
+                           value="{{ task.instruction.modem_configuration.act_mode }}" disabled>
+                </div>
+                <div class="col">
+                    <label for="repeat" class="form-label ps-2">Experiment iteration</label>
+                    <input type="number" class="form-control" id="repeat" name="repeat"
+                           value="{{ task.instruction.repeat }}" disabled>
+                </div>
+                <div class="col">
+                    <label for="operator_mode" class="form-label ps-2">Operator Mode</label>
+                    <input type="text" class="form-control" id="operator_mode"
+                           value="{{ task.instruction.modem_configuration.operator_mode }}" disabled>
+                </div>
+                <div class="col">
+                    <label for="operator" class="form-label ps-2">Operator</label>
+                    <input type="text" class="form-control" id="operator"
+                           value="{{ task.instruction.modem_configuration.operators }}" disabled>
+                </div>
+                <div class="col">
+                    <label for="apn" class="form-label ps-2">APN</label>
+                    <input type="text" class="form-control" id="apn"
+                           value="{{ task.instruction.modem_configuration.apn }}" disabled>
+                </div>
+                <div class="col">
+                    <label for="iptype" class="form-label ps-2">IP Type</label>
+                    <input type="text" class="form-control" id="iptype"
+                            value="{{ ip_type }}" disabled>
+                </div>
+                <div class="col">
+                    <label for="experiment_pause" class="form-label ps-2">Experiment pause (sec)</label>
+                    <input type="number" class="form-control" id="experiment_pause"
+                           value="{{ task.instruction.experiment_pause }}" disabled>
+                </div>
+                <div class="col">
+                    <label for="background_pause" class="form-label ps-2">Background pause (sec)</label>
+                    <input type="number" class="form-control" id="background_pause"
+                           value="{{ task.instruction.background_tasks.pause }}" disabled>
+                </div>
+            </div>
+
+            {% if task.instruction.modem == "Quectel_BG96" %}
+                <div id="act_config" class="row row-cols-3 g-3 mt-2">
+                    <div class="col">
+                        <label for="gsm_band" class="form-label ps-2">2G Band</label>
+                        <input type="text" class="form-control" id="gsm_band" name="gsm_band"
+                            value="{{ task.instruction.modem_configuration.gsm_band }}" disabled>
+                    </div>
+                    <div class="col">
+                        <label for="catm1_band" class="form-label ps-2">LTE-M Band</label>
+                        <input type="text" class="form-control" id="catm1_band" name="catm1_band"
+                            value="{{ task.instruction.modem_configuration.catm1_band }}" disabled>
+                    </div>
+                    <div class="col">
+                        <label for="nbiot_band" class="form-label ps-2">NB-IoT Band</label>
+                        <input type="text" class="form-control" id="nbiot_band" name="nbiot_band"
+                            value="{{ task.instruction.modem_configuration.nbiot_band }}" disabled>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Measurement Body -->
+        <div class="container">
+            <div class="row mt-4">
+                <div class="col">
+                    <h5>Measurement Body</h5>
+                </div>
+            </div>
+
+            <hr class="mt-0 mb-0">
+
+            <div class="row mt-4">
+                <!-- Left Section - List of Items -->
+                <div class="col-md-3">
+                    <h6 class="ps-3">Measurement Jobs</h6>
+                    <ul id="measurement_tasks" style="list-style-type: none; padding: 0;">
+                        {% for measurement in task.instruction.measurement_tasks.tasks %}
+                            <li>
+                                <div class="card bg-light mb-3 close" style="max-width: 20rem;">
+                                    <div class="card-header">
+                                        {{ measurement.name }}
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text" style="font-size: 0.7rem">
+                                            <b>Image Name:</b> {{ measurement.image_name }}<br>
+                                            <b>Environment Variables:</b>
+                                            {% if measurement.environment is None or measurement.environment == "" %}
+                                                None <br>
+                                            {% else %}
+                                            {{ measurement.environment|join:";" }} <br>
+                                            {% endif %}
+
+                                            <b>Network:</b> {{ measurement.network }}<br>
+                                            <b>Docker Logger:</b> {{ measurement.docker_logger }}<br>
+                                            <b>Docker Log Path:</b> {{ measurement.docker_log_path }}<br>
+                                            <b>Pause:</b> {{ measurement.pause }}<br>
+                                        </p>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="col-md-3">
+                    <h6 class="ps-3">Background Jobs</h6>
+                    <ul id="background_tasks" style="list-style-type: none; padding: 0;">
+                        {% for background in task.instruction.background_tasks.tasks %}
+                            <li>
+                                <div class="card bg-light mb-3 close" style="max-width: 20rem;">
+                                    <div class="card-header">
+                                        {{ background.name }}
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text" style="font-size: 0.7rem">
+                                            <b>Image Name:</b> {{ background.image_name }}<br>
+                                            <b>Environment Variables:</b>
+                                            {% if background.environment is None or background.environment == "" %}
+                                                None <br>
+                                            {% endif %}
+                                            {% for value in background.environment %}
+                                                {{ value }}<br>
+                                            {% endfor %}
+                                            <b>Network:</b> {{ background.network }}<br>
+                                            <b>Docker Logger:</b> {{ background.docker_logger }}<br>
+                                            <b>Docker Log Path:</b> {{ background.docker_log_path }}<br>
+                                            <b>Pause:</b> {{ background.pause }}<br>
+                                        </p>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="col-md-3">
+                    <h6 class="ps-3">Enhanced Background Jobs</h6>
+                    <ul id="background_later_tasks" style="list-style-type: none; padding: 0;">
+                        {% for background_later in task.instruction.background_later_tasks.tasks %}
+                            <li>
+                                <div class="card bg-light mb-3 close" style="max-width: 20rem;">
+                                    <div class="card-header">
+                                        {{ background_later.name }}
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text" style="font-size: 0.7rem">
+                                            <b>Image Name:</b> {{ background_later.image_name }}<br>
+                                            <b>Environment Variables:</b>
+                                            {% if background_later.environment is None or background_later.environment == "" %}
+                                                None <br>
+                                            {% endif %}
+                                            {% for value in background_later.environment %}
+                                                {{ value }}<br>
+                                            {% endfor %}
+                                            <b>Network:</b> {{ background_later.network }}<br>
+                                            <b>Docker Logger:</b> {{ background_later.docker_logger }}<br>
+                                            <b>Docker Log Path:</b> {{ background_later.docker_log_path }}<br>
+                                            <b>Pause:</b> {{ background_later.pause }}<br>
+                                        </p>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>

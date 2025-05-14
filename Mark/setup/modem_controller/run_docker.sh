@@ -1,0 +1,1 @@
+docker -H ssh://ubuntu@172.16.32.30 run -it --rm --privileged setup-controller-modem

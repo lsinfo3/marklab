@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% include 'head_static/bootstrap.html' %}
+    {% include 'head_static/jquery.html' %}
+
+    <title>Docker images</title>
+</head>
+<script>
+
+    function reactivateImage(image_id, device_id) {
+        if (confirm("Are you sure you want to reactivate this image?")) {
+            window.location.href = "/device/" + device_id + "/docker_image/" + image_id + "/reactivate/";
+        }
+    }
+
+    function deactivateImage(image_id, device_id) {
+        if (confirm("Are you sure you want to deactivate this image?")) {
+            window.location.href = "/device/" + device_id + "/docker_image/" + image_id + "/deactivate/";
+        }
+    }
+
+    function publishImage(image_id, device_id) {
+        if (confirm("Are you sure you want to publish this image?")) {
+            window.location.href = "/device/" + device_id + "/docker_image/" + image_id + "/publish/";
+        }
+    }
+
+    function hideImage(image_id, device_id) {
+        if (confirm("Are you sure you want to unpublish this image?")) {
+            window.location.href = "/device/" + device_id + "/docker_image/" + image_id + "/hide/";
+        }
+    }
+
+    function deleteImage(image_id, device_id) {
+        if (confirm("Are you sure you want to delete this image?")) {
+            window.location.href = "/device/" + device_id + "/docker_image/" + image_id + "/delete/";
+        }
+    }
+</script>
+
+<body class="p-3 m-0 border-0 bd-example m-0 border-0">
+
+{% include 'navbar.html' %}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col ps-4">
+            <h3 class="ps-3">{{ device.name }} - Docker Images</h3>
+        </div>
+        <div class="col text-end pe-4">
+            {% if has_perm_upload_docker_images %}
+                <a class="btn btn-primary" role="button" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    Upload Docker Image
+                </a>
+            {% endif %}
+            <a href="{% url 'device' device_id=device.id %}" class="btn btn-secondary" role="button">Back</a>
+        </div>
+    </div>
+
+    {% include 'dockerfile_upload.html' %}
+
+    <hr>
+
+    <div class="container">
+        {% if user_images %}
+            <div class="row">
+                <div class="col-12  mt-4">
+                    <h4 class="ps-1">My Docker Images</h4>
+                    <table id="userTable" class="table table-striped table-hover table-bordered mt-3">
+                        <thead>
+                        <tr style="text-align: center">
+                            <th scope="col">ID</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Label</th>
+                            <th scope="col">Output Type</th>
+                            <th scope="col">Output File</th>
+                            <th scope="col">Measurement Type</th>
+                            <th scope="col">Active</th>
+                            <th scope="col">Public</th>
+                            <th scope="col">Changed At</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for image in user_images %}
+                            <tr style="text-align: center">
+                                <td>{{ image.id }}</td>
+                                <td>{{ image.name }}</td>
+                                <td>{{ image.label }}</td>
+                                <td>{{ image.output_type }}</td>
+                                <td>{{ image.output_file }}</td>
+                                <td>{{ image.measurement_type }}</td>
+                                <td>
+                                    {% if image.active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if image.is_public %}
+                                        <span class="badge bg-success">Public</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Private</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ image.change_at }}</td>
+                                <td>
+                                    <!-- Delete button: url device/<int:device_id>/docker_image/<int:image_id>/delete/ -->
+                                    {% if image.active %}
+                                        <button type="button" class="btn btn-success"
+                                                onclick="deactivateImage('{{ image.id }}', '{{ device.id }}')"
+                                                title="Deactivate">
+                                            <i class="bi bi-pause"></i>
+                                        </button>
+                                    {% else %}
+                                        <button type="button" class="btn btn-success"
+                                                onclick="reactivateImage('{{ image.id }}', '{{ device.id }}')"
+                                                title="Reactivate">
+                                            <i class="bi bi-play"></i>
+                                        </button>
+                                    {% endif %}
+                                    {% if image.is_public %}
+                                        <button type="button" class="btn btn-warning"
+                                                onclick="hideImage('{{ image.id }}', '{{ device.id }}')" title="Hide">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </button>
+                                    {% else %}
+                                        <button type="button" class="btn btn-warning"
+                                                onclick="publishImage('{{ image.id }}', '{{ device.id }}')"
+                                                title="Publish">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-danger"
+                                            onclick="deleteImage('{{ image.id }}', '{{ device.id }}')" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        {% endif %}
+        <div class="row">
+            <div class="col-12 mt-4">
+                <h4 class="ps-1">Public Docker Images</h4>
+                <table id="public_images" class="table table-striped table-hover table-bordered mt-3">
+                    <thead>
+                    <tr style="text-align: center">
+                        <th scope="col">ID</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Label</th>
+                        <th scope="col">Measurement Type</th>
+                        <th scope="col">Active</th>
+                        <th scope="col">Changed At</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for image in public_images %}
+                        <tr style="text-align: center">
+                            <td>{{ image.id }}</td>
+                            <td>{{ image.name }}</td>
+                            <td>{{ image.label }}</td>
+                            <td>{{ image.measurement_type }}</td>
+                            <td>
+                                {% if image.active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            <td>{{ image.change_at }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

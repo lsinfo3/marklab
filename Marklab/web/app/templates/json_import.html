@@ -1,0 +1,38 @@
+<!-- Modal -->
+<script>
+    window.importMeasurementImages = [];
+    window.importBackgroundImages = [];
+    window.importBackgroundLaterImages = [];
+
+    {% for image in images %}
+        window.importMeasurementImages.push('{{ image.name }}')
+    {% endfor %}
+
+    {% for image in background_images %}
+        window.importBackgroundImages.push('{{ image.name }}')
+    {% endfor %}
+
+    {% for image in background_later_images %}
+        window.importBackgroundLaterImages.push('{{ image.name }}')
+    {% endfor %}
+</script>
+
+<div class="modal fade" id="jsonImporter" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="jsonImporterLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="jsonImporterLabel">Import JSON File</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="container modal-body">
+                <label for="jsonData" class="form-label">JSON File</label>
+                <textarea id="jsonData" class="form-control" rows="15" cols="50"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal"
+                        onclick="importFromJsonModal()">Import</button>
+            </div>
+        </div>
+    </div>
+</div>

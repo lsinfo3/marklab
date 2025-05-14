@@ -1,0 +1,55 @@
+{
+  "experiment_name": "upload-10KB-experiment",
+  "device_name": "Mark1",
+  "modem": "Quectel_BG96",
+  "modem_iot": true,
+  "modem_port": "/dev/ttyUSB8",
+  "repeat": 4,
+  "always_save_logs": true,
+  "experiment_pause": 30,
+  "modem_configuration":{
+    "apn": "em",
+    "ip-type": "ipv4",
+    "operator_mode": "random",
+    "operators": [
+      "4,2,\"26202\",9",
+      "4,2,\"26202\",0"
+    ]
+  },
+  "background_tasks": {
+    "pause": 180,
+    "tasks": [
+      {
+        "name": "temperature",
+        "image_name": "exp-temperature",
+        "environment": [
+        ],
+        "docker_logger": false,
+        "pause": 30
+      },
+      {
+        "name": "voltage-current",
+        "image_name": "exp-bricklet-voltage-current",
+        "environment": [
+        ],
+        "network": "host",
+        "privileged": true,
+        "docker_logger": true,
+        "docker_log_path": "/app/exp-bricklet-voltage-current/logs"
+      }
+    ]
+  },
+  "measurement_tasks": {
+    "tasks": [
+      {
+        "image_name": "exp-upload-curl",
+        "name": "upload_10KB",
+        "network": "host",
+        "privileged": true,
+        "environment": [
+        ],
+        "docker_logger": false
+      }
+    ]
+  }
+}
