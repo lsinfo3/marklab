@@ -7,9 +7,9 @@ More information can be found [here](https://lsinfo3.github.io/marklab-website/)
 ## Repository Directories
 
 project overview and introduction of the most relevant framework components
-* [marklab](/marklab): The central management server responsible for coordinating measurements, collecting data, and managing MARK nodes. See [marklab/README.md](/marklab/README.md) for setup and usage.
-* [mark](/mark): The codebase for the MARK nodes, which are distributed clients that perform measurements and report data to the management server. See [mark/README.md](/mark/README.md) for installation and deployment instructions.
-* [hardware](/hardware): Contains 3D-printable enclosure files and a hardware assembly manual for building the physical MARK node devices.
+* [marklab](/Marklab): The central management server responsible for coordinating measurements, collecting data, and managing MARK nodes. See [marklab/README.md](/marklab/README.md) for setup and usage.
+* [mark](/Mark): The codebase for the MARK nodes, which are distributed clients that perform measurements and report data to the management server. See [mark/README.md](/mark/README.md) for installation and deployment instructions.
+* [hardware](/Hardware): Contains 3D-printable enclosure files and a hardware assembly manual for building the physical MARK node devices.
 
 
 
