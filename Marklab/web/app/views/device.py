@@ -74,11 +74,12 @@ def device(request, device_id):
 
     for task in r_tasks:
         # Remove all Tinkerforge UIDs from the JSON provided for copying
-        for background_task in task.instruction["background_tasks"]["tasks"]:
-            if background_task["image_name"] != "exp-bricklet-voltage-current":
-                continue
+        if "background_tasks" in task.instruction and "tasks" in task.instruction["background_tasks"]:
+            for background_task in task.instruction["background_tasks"]["tasks"]:
+                if background_task["image_name"] != "exp-bricklet-voltage-current":
+                    continue
 
-            background_task["environment"] = [ variable for variable in background_task["environment"] if not variable.startswith("UID=") ]
+                background_task["environment"] = [ variable for variable in background_task["environment"] if not variable.startswith("UID=") ]
 
         if 'is_scheduled_task' in task.instruction and task.instruction['is_scheduled_task']:
             if 'repeat_scheduled_task' in task.instruction and task.instruction['repeat_scheduled_task']:

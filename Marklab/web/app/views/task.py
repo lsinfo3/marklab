@@ -288,7 +288,7 @@ def selection_download(request, device_id):
                         raise FileNotFoundError('Result file not found!')
 
         in_memory_zip.seek(0)
-        file_name = f'results_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.zip'
+        file_name = f'results_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_({len(tasks)}).zip'
         response = HttpResponse(in_memory_zip.getvalue(), content_type='application/zip')
         response['Content-Disposition'] = 'inline; filename=' + file_name
         return response

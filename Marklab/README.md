@@ -13,6 +13,17 @@ DATABASE_PASSWORD=...
 DATABASE_HOST=marklab_database
 DATABASE_PORT=5432
 
+# Django secret key (the command below can generate this)
+# python3 -c "import secrets; print(secrets.token_urlsafe(128))"
+DJANGO_SECRET_KEY=
+
+# Whether to enable Django debug mode
+DJANGO_DEBUG=false
+
+# Comma-separated list of Django allowed hosts
+# IP addresses and hostnames assigned to the management server must be listed here
+DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,marklab-web
+
 # Folder where results will be stored on the host
 RESULTS_FOLDER=/home/ubuntu/results
 

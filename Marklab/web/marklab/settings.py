@@ -25,22 +25,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-x%kd8=xj$l0llu#u%zf)0y1nffv)1*+3o^h7n2#zl3dh^f_&xz'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG_ENV = os.getenv('DJANGO_DEBUG')
+DEBUG = DEBUG_ENV is not None and DEBUG_ENV.lower() == "true" and DEBUG_ENV.strip
 
-ALLOWED_HOSTS = [
-    '127.0.0.1',
-    'localhost',
-    '172.16.0.0',
-    '172.16.100.11',
-    '10.110.0.0',
-    '10.110.0.100',
-    '172.16.44.177',
-    'marklab-web',
-    'marklab.informatik.uni-wuerzburg.de'
-]
+ALLOWED_HOSTS_ENV = os.getenv('DJANGO_ALLOWED_HOSTS')
+
+if ALLOWED_HOSTS_ENV is not None:
+    ALLOWED_HOSTS = [ allowed_host.strip() for allowed_host in ALLOWED_HOSTS_ENV.split(",") ]
+else:
+    ALLOWED_HOSTS = []
 
 CSRF_TRUSTED_ORIGINS = [ f"http://{host}" for host in ALLOWED_HOSTS ] + [ f"https://{host}" for host in ALLOWED_HOSTS ]
 
